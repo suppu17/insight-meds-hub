@@ -140,14 +140,6 @@ const Index = () => {
               {/* Upload Section */}
               <div className="space-y-8">
                 <Card className="glass-card p-8">
-                  <div className="text-center mb-6">
-                    <h2 className="text-2xl font-semibold mb-2">
-                      Start Your Analysis
-                    </h2>
-                    <p className="text-muted-foreground">
-                      Choose your preferred input method
-                    </p>
-                  </div>
                   
                   <UploadZone
                     onFileUpload={handleFileUpload}
