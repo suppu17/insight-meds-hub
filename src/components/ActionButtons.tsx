@@ -11,7 +11,7 @@ const ActionButtons = ({ onAction, isLoading = false }: ActionButtonsProps) => {
     {
       id: 'overview',
       title: 'Overview',
-      description: 'Key drug information & composition',
+      description: 'Key drug information',
       icon: Eye,
       gradient: 'bg-gradient-primary',
       delay: '0ms'
@@ -19,7 +19,7 @@ const ActionButtons = ({ onAction, isLoading = false }: ActionButtonsProps) => {
     {
       id: 'visualize',
       title: 'Visualize',
-      description: 'Mechanism of action explained',
+      description: 'Mechanism of action',
       icon: BarChart3,
       gradient: 'bg-gradient-accent',
       delay: '100ms'
@@ -27,7 +27,7 @@ const ActionButtons = ({ onAction, isLoading = false }: ActionButtonsProps) => {
     {
       id: 'research',
       title: 'Latest Research',
-      description: 'Current clinical studies & trials',
+      description: 'Current clinical studies',
       icon: Search,
       gradient: 'bg-gradient-primary',
       delay: '200ms'
@@ -35,7 +35,7 @@ const ActionButtons = ({ onAction, isLoading = false }: ActionButtonsProps) => {
     {
       id: 'vocal',
       title: 'Summarize Vocally',
-      description: 'Multi-language voice summaries',
+      description: 'Multi-language voice summary',
       icon: Volume2,
       gradient: 'bg-gradient-accent',
       delay: '300ms'
