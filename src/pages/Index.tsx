@@ -2,6 +2,7 @@ import { useState } from "react";
 import MedInsightLogo from "@/components/MedInsightLogo";
 import UploadZone from "@/components/UploadZone";
 import ActionButtons from "@/components/ActionButtons";
+import AdditionalFeatures from "@/components/AdditionalFeatures";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -162,6 +163,13 @@ const Index = () => {
                   </div>
                   
                   <ActionButtons
+                    onAction={handleAction}
+                    isLoading={false}
+                  />
+                </Card>
+                
+                <Card className="glass-card p-8">
+                  <AdditionalFeatures
                     onAction={handleAction}
                     isLoading={false}
                   />
