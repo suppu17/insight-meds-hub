@@ -155,21 +155,6 @@ const Index = () => {
                   />
                 </Card>
 
-                {/* Features Highlight */}
-                <div className="grid grid-cols-2 gap-4">
-                  {features.map((feature, i) => {
-                    const IconComponent = feature.icon;
-                    return (
-                      <div key={i} className="glass-card p-4 text-center">
-                        <div className="glass-panel rounded-full p-3 w-fit mx-auto mb-3">
-                          <IconComponent className="w-5 h-5 text-primary" />
-                        </div>
-                        <h4 className="font-semibold text-sm mb-1">{feature.title}</h4>
-                        <p className="text-xs text-muted-foreground">{feature.description}</p>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
 
               {/* Actions Section */}
