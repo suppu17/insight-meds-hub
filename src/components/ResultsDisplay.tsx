@@ -22,6 +22,236 @@ import {
 import { drugAnalysisAPI, DrugAnalysisRequest, AnalysisProgress } from "@/lib/api/drugAnalysisApi";
 import { generateClinicalRecommendations } from "@/lib/utils/clinicalDecisionSupport";
 
+// Helper functions for comprehensive drug information display
+const getDrugClass = (drugName: string): string => {
+  const drugClasses: Record<string, string> = {
+    'aspirin': 'Nonsteroidal Anti-inflammatory Drug (NSAID)',
+    'ibuprofen': 'Nonsteroidal Anti-inflammatory Drug (NSAID)',
+    'acetaminophen': 'Analgesic/Antipyretic',
+    'paracetamol': 'Analgesic/Antipyretic',
+    'metformin': 'Biguanide Antidiabetic',
+    'lisinopril': 'ACE Inhibitor',
+    'amlodipine': 'Calcium Channel Blocker',
+    'simvastatin': 'HMG-CoA Reductase Inhibitor (Statin)',
+    'atorvastatin': 'HMG-CoA Reductase Inhibitor (Statin)',
+    'omeprazole': 'Proton Pump Inhibitor',
+    'amoxicillin': 'Beta-lactam Antibiotic (Penicillin)',
+    'warfarin': 'Anticoagulant (Vitamin K Antagonist)',
+    'digoxin': 'Cardiac Glycoside',
+    'furosemide': 'Loop Diuretic',
+    'prednisone': 'Corticosteroid',
+    'metoprolol': 'Beta-blocker',
+    'hydrochlorothiazide': 'Thiazide Diuretic',
+    'levothyroxine': 'Thyroid Hormone',
+    'insulin': 'Antidiabetic Hormone',
+    'morphine': 'Opioid Analgesic'
+  };
+
+  const normalizedName = drugName.toLowerCase().trim();
+  return drugClasses[normalizedName] || 'Pharmaceutical Agent';
+};
+
+const getPrimaryIndication = (drugName: string): string => {
+  const indications: Record<string, string> = {
+    'aspirin': 'pain, inflammation, and cardiovascular protection',
+    'ibuprofen': 'pain, fever, and inflammation',
+    'acetaminophen': 'pain and fever',
+    'paracetamol': 'pain and fever',
+    'metformin': 'type 2 diabetes mellitus',
+    'lisinopril': 'hypertension and heart failure',
+    'amlodipine': 'hypertension and angina',
+    'simvastatin': 'high cholesterol and cardiovascular risk reduction',
+    'atorvastatin': 'high cholesterol and cardiovascular risk reduction',
+    'omeprazole': 'gastroesophageal reflux disease (GERD) and peptic ulcers',
+    'amoxicillin': 'bacterial infections',
+    'warfarin': 'blood clot prevention',
+    'digoxin': 'heart failure and atrial fibrillation',
+    'furosemide': 'fluid retention (edema) and hypertension',
+    'prednisone': 'inflammatory and autoimmune conditions',
+    'metoprolol': 'hypertension, angina, and heart failure',
+    'hydrochlorothiazide': 'hypertension and fluid retention',
+    'levothyroxine': 'hypothyroidism',
+    'insulin': 'diabetes mellitus',
+    'morphine': 'moderate to severe pain'
+  };
+
+  const normalizedName = drugName.toLowerCase().trim();
+  return indications[normalizedName] || 'various medical conditions as prescribed by healthcare providers';
+};
+
+const getMedicationUses = (drugName: string): string[] => {
+  const uses: Record<string, string[]> = {
+    'aspirin': [
+      'Pain relief (headaches, muscle aches)',
+      'Reduce inflammation and swelling',
+      'Lower fever',
+      'Prevent heart attacks and strokes',
+      'Reduce blood clot formation'
+    ],
+    'ibuprofen': [
+      'Pain relief (headaches, dental pain, menstrual cramps)',
+      'Reduce inflammation (arthritis, sports injuries)',
+      'Lower fever',
+      'Treat minor aches and pains'
+    ],
+    'metformin': [
+      'Lower blood sugar in type 2 diabetes',
+      'Improve insulin sensitivity',
+      'Support weight management in diabetic patients',
+      'Reduce risk of diabetic complications'
+    ],
+    'lisinopril': [
+      'Lower blood pressure (hypertension)',
+      'Treat heart failure',
+      'Protect kidneys in diabetic patients',
+      'Prevent cardiovascular events'
+    ],
+    'omeprazole': [
+      'Treat gastroesophageal reflux disease (GERD)',
+      'Heal peptic ulcers',
+      'Prevent stomach ulcers caused by NSAIDs',
+      'Treat Zollinger-Ellison syndrome'
+    ]
+  };
+
+  const normalizedName = drugName.toLowerCase().trim();
+  return uses[normalizedName] || [
+    'Treat specific medical conditions',
+    'Manage symptoms as prescribed',
+    'Support overall health outcomes',
+    'Prevent disease progression'
+  ];
+};
+
+const getCommonSideEffects = (drugName: string): string[] => {
+  const sideEffects: Record<string, string[]> = {
+    'aspirin': [
+      'Stomach irritation or upset',
+      'Increased bleeding risk',
+      'Nausea or heartburn',
+      'Ringing in ears (tinnitus)'
+    ],
+    'ibuprofen': [
+      'Stomach upset or pain',
+      'Nausea or vomiting',
+      'Dizziness or drowsiness',
+      'Headache'
+    ],
+    'metformin': [
+      'Nausea or vomiting',
+      'Diarrhea or stomach upset',
+      'Loss of appetite',
+      'Metallic taste in mouth'
+    ],
+    'lisinopril': [
+      'Dry cough',
+      'Dizziness or lightheadedness',
+      'Fatigue or weakness',
+      'Headache'
+    ],
+    'omeprazole': [
+      'Headache',
+      'Nausea or stomach pain',
+      'Diarrhea or constipation',
+      'Dizziness'
+    ]
+  };
+
+  const normalizedName = drugName.toLowerCase().trim();
+  return sideEffects[normalizedName] || [
+    'Nausea or stomach upset',
+    'Dizziness or headache',
+    'Changes in appetite',
+    'Mild allergic reactions'
+  ];
+};
+
+const getContraindications = (drugName: string): string[] => {
+  const contraindications: Record<string, string[]> = {
+    'aspirin': [
+      'Allergy to aspirin or salicylates',
+      'Active bleeding or bleeding disorders',
+      'Severe kidney or liver disease',
+      'Children with viral infections (Reye\'s syndrome risk)'
+    ],
+    'ibuprofen': [
+      'Allergy to NSAIDs',
+      'History of asthma attacks with NSAIDs',
+      'Active peptic ulcer disease',
+      'Severe heart, kidney, or liver disease'
+    ],
+    'metformin': [
+      'Severe kidney disease',
+      'Metabolic acidosis',
+      'Severe liver disease',
+      'Conditions causing dehydration'
+    ],
+    'lisinopril': [
+      'Pregnancy (especially 2nd and 3rd trimesters)',
+      'History of angioedema',
+      'Bilateral renal artery stenosis',
+      'Hyperkalemia (high potassium)'
+    ],
+    'omeprazole': [
+      'Allergy to proton pump inhibitors',
+      'Concurrent use with rilpivirine',
+      'Severe liver impairment',
+      'Long-term use concerns (bone fractures, B12 deficiency)'
+    ]
+  };
+
+  const normalizedName = drugName.toLowerCase().trim();
+  return contraindications[normalizedName] || [
+    'Known allergy to this medication',
+    'Severe liver or kidney disease',
+    'Pregnancy (unless specifically advised)',
+    'Certain medical conditions (consult doctor)'
+  ];
+};
+
+const getDrugInteractions = (drugName: string): string[] => {
+  const interactions: Record<string, string[]> = {
+    'aspirin': [
+      'Warfarin (increased bleeding risk)',
+      'ACE inhibitors (reduced effectiveness)',
+      'Methotrexate (increased toxicity)',
+      'Alcohol (increased stomach bleeding risk)'
+    ],
+    'ibuprofen': [
+      'Blood thinners (warfarin, heparin)',
+      'ACE inhibitors or ARBs',
+      'Lithium (increased lithium levels)',
+      'Steroids (increased ulcer risk)'
+    ],
+    'metformin': [
+      'Contrast dyes (kidney damage risk)',
+      'Alcohol (lactic acidosis risk)',
+      'Diuretics (dehydration concerns)',
+      'Steroids (blood sugar effects)'
+    ],
+    'lisinopril': [
+      'NSAIDs (reduced kidney function)',
+      'Potassium supplements (hyperkalemia)',
+      'Diuretics (excessive blood pressure drop)',
+      'Lithium (increased lithium levels)'
+    ],
+    'omeprazole': [
+      'Clopidogrel (reduced antiplatelet effect)',
+      'Warfarin (altered bleeding risk)',
+      'Digoxin (increased digoxin levels)',
+      'Iron supplements (reduced absorption)'
+    ]
+  };
+
+  const normalizedName = drugName.toLowerCase().trim();
+  return interactions[normalizedName] || [
+    'Blood thinning medications',
+    'Other prescription medications',
+    'Over-the-counter supplements',
+    'Certain foods or beverages'
+  ];
+};
+
 // Interface for extracted medical information (matching documentProcessor.ts)
 interface ExtractedMedicalInfo {
   medications: string[];
@@ -1134,73 +1364,144 @@ const ResultsDisplay = ({ action, data, onBack }: ResultsDisplayProps) => {
               </Card>
             )}
 
-            {/* Patient-Friendly Summary */}
+            {/* Comprehensive Drug Information */}
             <Card className="glass-card p-6 bg-blue/5 border-blue/20">
               <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Eye className="w-6 h-6 text-blue-600" />
-                {drugName} - Simple Overview
+                {drugName} - Complete Overview
               </h3>
               <p className="text-muted-foreground mb-6 text-lg">
-                A clear, easy-to-understand summary of this medication designed for patients and families.
+                Comprehensive medication information including uses, mechanism, side effects, and precautions.
               </p>
 
-              {drugAnalysis && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* What It Is */}
-                  <div className="space-y-4">
+              {drugAnalysis ? (
+                <div className="space-y-6">
+                  {/* What It Is & Primary Use */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="bg-white/50 rounded-lg p-4 border border-blue/20">
-                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
                         <Pill className="w-5 h-5" />
                         What is {drugName}?
                       </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {drugName} is a medication that helps treat specific medical conditions by working inside your body at the cellular level.
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {drugName} is a {getDrugClass(drugName)} medication primarily used to treat {getPrimaryIndication(drugName)}.
+                        It works by {drugAnalysis.mechanismOfAction.split('.')[0].toLowerCase()}.
                       </p>
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          <strong>Drug Class:</strong> {getDrugClass(drugName)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          <strong>Generic Name:</strong> {drugName}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="bg-white/50 rounded-lg p-4 border border-blue/20">
-                      <h4 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
+                    <div className="bg-white/50 rounded-lg p-4 border border-green/20">
+                      <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
                         <CheckCircle className="w-5 h-5" />
-                        How It Helps You
+                        Primary Uses & Benefits
                       </h4>
-                      <ul className="space-y-1 text-sm">
-                        {drugAnalysis.keyPoints.map((point, i) => (
+                      <ul className="space-y-2 text-sm">
+                        {getMedicationUses(drugName).map((use, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
-                            <span className="text-muted-foreground">{point}</span>
+                            <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
+                            <span className="text-muted-foreground">{use}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   </div>
 
-                  {/* How It Works & Safety */}
-                  <div className="space-y-4">
-                    <div className="bg-white/50 rounded-lg p-4 border border-blue/20">
-                      <h4 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
-                        <Brain className="w-5 h-5" />
-                        How It Works (Simple)
+                  {/* Mechanism of Action */}
+                  <div className="bg-white/50 rounded-lg p-4 border border-purple/20">
+                    <h4 className="font-semibold text-purple-700 mb-3 flex items-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      How It Works (Mechanism of Action)
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {drugAnalysis.mechanismOfAction}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {drugAnalysis.keyPoints.map((point, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-purple/5 p-2 rounded">
+                          <span className="w-1.5 h-1.5 bg-purple-500 rounded-full flex-shrink-0"></span>
+                          <span className="text-muted-foreground">{point}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Side Effects & Safety */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white/50 rounded-lg p-4 border border-orange/20">
+                      <h4 className="font-semibold text-orange-700 mb-3 flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5" />
+                        Common Side Effects
                       </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {drugAnalysis.mechanismOfAction.split('.')[0]}. This helps your body function better and reduces symptoms.
-                      </p>
+                      <ul className="space-y-2 text-sm">
+                        {getCommonSideEffects(drugName).map((effect, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <AlertTriangle className="w-3 h-3 text-orange-500 mt-1 flex-shrink-0" />
+                            <span className="text-muted-foreground">{effect}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
 
-                    <div className="bg-white/50 rounded-lg p-4 border border-orange/20">
-                      <h4 className="font-semibold text-orange-700 mb-2 flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5" />
-                        Important Safety Information
+                    <div className="bg-white/50 rounded-lg p-4 border border-red/20">
+                      <h4 className="font-semibold text-red-700 mb-3 flex items-center gap-2">
+                        <Shield className="w-5 h-5" />
+                        Important Precautions
                       </h4>
-                      <ul className="space-y-1 text-sm">
-                        {drugAnalysis.safetyWarnings.slice(0, 3).map((warning, i) => (
+                      <ul className="space-y-2 text-sm">
+                        {drugAnalysis.safetyWarnings.map((warning, i) => (
                           <li key={i} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
+                            <Shield className="w-3 h-3 text-red-500 mt-1 flex-shrink-0" />
                             <span className="text-muted-foreground">{warning}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   </div>
+
+                  {/* Contraindications & Drug Interactions */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white/50 rounded-lg p-4 border border-red/20">
+                      <h4 className="font-semibold text-red-700 mb-3 flex items-center gap-2">
+                        <ExternalLink className="w-5 h-5" />
+                        Contraindications
+                      </h4>
+                      <ul className="space-y-2 text-sm">
+                        {getContraindications(drugName).map((contra, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <ExternalLink className="w-3 h-3 text-red-500 mt-1 flex-shrink-0" />
+                            <span className="text-muted-foreground">{contra}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="bg-white/50 rounded-lg p-4 border border-yellow/20">
+                      <h4 className="font-semibold text-yellow-700 mb-3 flex items-center gap-2">
+                        <Users className="w-5 h-5" />
+                        Drug Interactions
+                      </h4>
+                      <ul className="space-y-2 text-sm">
+                        {getDrugInteractions(drugName).map((interaction, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <Users className="w-3 h-3 text-yellow-600 mt-1 flex-shrink-0" />
+                            <span className="text-muted-foreground">{interaction}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">Loading comprehensive drug information...</p>
                 </div>
               )}
             </Card>

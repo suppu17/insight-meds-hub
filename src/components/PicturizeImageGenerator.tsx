@@ -91,6 +91,18 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
     })));
   }, [drugName, drugAnalysis]);
 
+  // Auto-start image generation after images are initialized
+  useEffect(() => {
+    if (images.length > 0 && (drugAnalysis || drugName)) {
+      // Automatically start image generation after component mounts
+      const timer = setTimeout(() => {
+        generateAllImages();
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [images.length, drugName, drugAnalysis]);
+
   const generateImage = async (index: number) => {
     const prompts = getImagePrompts();
     if (index >= prompts.length) return;
@@ -180,26 +192,52 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-bold flex items-center gap-2">
           <Image className="w-6 h-6 text-green-600" />
-          Generated Illustrations
-        </h3>
-        <Button
-          onClick={generateAllImages}
-          disabled={isGenerating}
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Generate Images
-            </>
+          AI-Generated Illustrations
+          {isGenerating && (
+            <Badge variant="secondary" className="ml-2 text-xs animate-pulse">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              Generating
+            </Badge>
           )}
-        </Button>
+        </h3>
+        <div className="flex gap-2">
+          <Button
+            onClick={generateAllImages}
+            disabled={isGenerating}
+            variant="outline"
+            size="sm"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Regenerating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Regenerate
+              </>
+            )}
+          </Button>
+        </div>
       </div>
+
+      {/* Auto-generation notice */}
+      {!isGenerating && images.every(img => !img.url && !img.error) && (
+        <div className="mb-6 p-4 glass-panel rounded-lg bg-blue/5 border-blue/20">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin">
+              <Loader2 className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-medium text-blue-900">Generating AI Illustrations</p>
+              <p className="text-sm text-blue-700">
+                Creating molecular structure, mechanism diagram, and therapeutic effects visualizations...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {generationProgress && (
         <div className="mb-6 p-3 glass-panel rounded-lg bg-green/5 border-green/20">
@@ -306,23 +344,23 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
         <div className="flex items-start gap-3">
           <Image className="w-5 h-5 text-blue-600 mt-0.5" />
           <div>
-            <h4 className="font-medium text-blue-900 mb-1">Visual Learning Enhanced</h4>
+            <h4 className="font-medium text-blue-900 mb-1">Automatic Visual Learning</h4>
             <p className="text-sm text-blue-700">
-              These AI-generated illustrations help visualize complex biological processes in an easy-to-understand format.
-              Each image is designed to show how {drugName} interacts with your body at different levels.
+              AI illustrations are generated automatically to help visualize how {drugName} works at the molecular level.
+              Each image shows different aspects: molecular structure, mechanism of action, and therapeutic effects.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant="outline" className="text-xs">
-                AI-Generated
+                ✨ Auto-Generated
               </Badge>
               <Badge variant="outline" className="text-xs">
-                Educational Use
+                🧬 Molecular Level
               </Badge>
               <Badge variant="outline" className="text-xs">
-                High Quality
+                📚 Educational
               </Badge>
               <Badge variant="outline" className="text-xs">
-                Downloadable
+                💾 Downloadable
               </Badge>
             </div>
           </div>
