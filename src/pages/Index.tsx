@@ -3,6 +3,7 @@ import MedInsightLogo from "@/components/MedInsightLogo";
 import UploadZone from "@/components/UploadZone";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import HistorySection from "@/components/HistorySection";
+import HealthAnalyzer from "@/components/HealthAnalyzer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -176,15 +177,6 @@ const Index = () => {
                 <History className="w-4 h-4" />
                 <span className="hidden sm:inline">History</span>
               </Button>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="glass-panel">
-                  <Shield className="w-3 h-3 mr-1" />
-                  Secure
-                </Badge>
-                <Badge variant="secondary" className="glass-panel">
-                  No Login Required
-                </Badge>
-              </div>
             </div>
           </div>
         </header>
@@ -236,23 +228,26 @@ const Index = () => {
               </Card>
             </div>
 
-            {/* Trust Indicators */}
-            <div className="mt-16 text-center">
-              <div className="glass-card p-8 max-w-4xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-primary">10K+</div>
-                    <div className="text-sm text-muted-foreground">Medications Analyzed</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-accent">99.9%</div>
-                    <div className="text-sm text-muted-foreground">Accuracy Rate</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-3xl font-bold text-primary">24/7</div>
-                    <div className="text-sm text-muted-foreground">Available</div>
-                  </div>
+            {/* Health Analysis Section */}
+            <div className="mt-16">
+              <div className="max-w-6xl mx-auto">
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-bold mb-4">
+                    <span className="bg-gradient-primary bg-clip-text text-transparent">
+                      Symptom & Concern Analyzer
+                    </span>
+                  </h2>
+                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                    Get personalized health insights by describing your concerns and symptoms.
+                    Our AI analyzes your input and provides evidence-based natural remedies and guidance.
+                  </p>
                 </div>
+
+                <HealthAnalyzer
+                  onAnalysisComplete={(result) => {
+                    console.log('Health analysis completed:', result);
+                  }}
+                />
               </div>
             </div>
           </div>

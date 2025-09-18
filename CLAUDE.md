@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Insight Meds Hub is a healthcare web application that provides AI-powered medication analysis and insights. Users can upload prescription photos, medication images, or manually enter drug names to receive comprehensive medical information, safety analysis, and personalized guidance.
+Insight Meds Hub is a comprehensive healthcare web application that provides:
+
+1. **AI-Powered Medication Analysis** - Upload prescription photos or enter drug names for detailed medication insights
+2. **Health Concern & Symptom Analyzer** - Enter health concerns and symptoms (with voice input support) to receive evidence-based natural remedies and guidance
+3. **Comprehensive Medical Information** - Safety analysis, drug interactions, and personalized healthcare recommendations
 
 ## Tech Stack
 
@@ -18,6 +22,7 @@ Insight Meds Hub is a healthcare web application that provides AI-powered medica
 - **Icons**: Lucide React
 - **Form Handling**: React Hook Form with Zod validation
 - **Cloud Services**: AWS SDK (Bedrock, S3), FAL AI client
+- **Voice Integration**: Gladia API for speech-to-text transcription
 
 ### Backend
 - **Framework**: FastAPI with Python
@@ -123,10 +128,11 @@ npm run fullstack
 - **UI Components**: Built on shadcn/ui design system with Radix UI primitives
 
 ### Key Application Flow
-1. **Landing Page** (`Index.tsx`): Hero section with upload zone and action buttons
-2. **Upload Handling**: Supports file upload (drag & drop) and manual medication entry
-3. **Action Processing**: Various analysis actions trigger results view
-4. **Results Display**: Shows processed insights and analysis results
+1. **Landing Page** (`Index.tsx`): Hero section with medication upload zone and health analysis features
+2. **Medication Analysis**: Supports file upload (drag & drop) and manual drug name entry
+3. **Health Analysis**: Concern and symptom tracker with voice input support
+4. **Action Processing**: Various analysis actions (overview, picturize, visualize, health analysis)
+5. **Results Display**: Shows processed insights, analysis results, and natural remedy recommendations
 
 ### Styling System
 - **Design System**: Custom design system extending shadcn/ui
