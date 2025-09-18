@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Shield, AlertTriangle, Clock, CheckCircle, ExternalLink, Brain, Video, Image, BarChart3, TrendingUp, Users, Cloud, Microscope } from "lucide-react";
+import { ArrowLeft, Shield, AlertTriangle, Clock, CheckCircle, ExternalLink, Brain, Video, Image, BarChart3, TrendingUp, Users, Cloud, Microscope, Pill, Eye } from "lucide-react";
 import VideoGenerationProgress, { VideoGenerationStage } from "@/components/VideoGenerationProgress";
 import VideoPlayer from "@/components/VideoPlayer";
 import SegmentPreview from "@/components/SegmentPreview";
 import PatientAnalysisDisplay from "@/components/PatientAnalysisDisplay";
+import PicturizeImageGenerator from "@/components/PicturizeImageGenerator";
 import { analyzeDrugMechanism, enhanceVideoPrompts, DrugAnalysisResult } from "@/lib/api/bedrock";
 import { generateChainedVideo, generateMechanismImage, VideoSegment } from "@/lib/api/fal";
 import { concatenateVideoSegments, concatenateVideoSegmentsWithTimeout, createVirtualCombinedVideo, CombinedVideoResult, VideoProcessingProgress } from "@/lib/api/videoProcessor";
@@ -136,6 +137,9 @@ const ResultsDisplay = ({ action, data, onBack }: ResultsDisplayProps) => {
     if (action === 'visualize') {
       // Start video generation immediately for visualize action
       startVideoGeneration();
+    } else if (action === 'picturize') {
+      // For picturize, we need drug analysis to generate proper image prompts
+      startDrugAnalysisOnly();
     } else {
       // Start backend analysis for other actions
       startBackendAnalysis();
@@ -150,6 +154,31 @@ const ResultsDisplay = ({ action, data, onBack }: ResultsDisplayProps) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [action, data]);
+
+  // Start drug analysis only (for picturize action)
+  const startDrugAnalysisOnly = async () => {
+    if (!data?.medication) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setCurrentMessage(`Analyzing ${data.medication} for image generation...`);
+
+    try {
+      const drugName = data.medication;
+
+      // Use the bedrock API directly for drug mechanism analysis
+      const analysis = await analyzeDrugMechanism(drugName);
+      setDrugAnalysis(analysis);
+      setIsLoading(false);
+      setCurrentMessage('Ready to generate images');
+    } catch (error) {
+      console.error('Failed to analyze drug for picturize:', error);
+      setGenerationError(error instanceof Error ? error.message : 'Failed to analyze medication');
+      setIsLoading(false);
+    }
+  };
 
   // Start backend analysis for non-video actions
   const startBackendAnalysis = async () => {
@@ -1105,11 +1134,82 @@ const ResultsDisplay = ({ action, data, onBack }: ResultsDisplayProps) => {
               </Card>
             )}
 
-            {/* Main Drug Overview */}
-            <Card className="glass-card p-6">
+            {/* Patient-Friendly Summary */}
+            <Card className="glass-card p-6 bg-blue/5 border-blue/20">
               <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <Shield className="w-6 h-6 text-primary" />
-                {drugName} Overview
+                <Eye className="w-6 h-6 text-blue-600" />
+                {drugName} - Simple Overview
+              </h3>
+              <p className="text-muted-foreground mb-6 text-lg">
+                A clear, easy-to-understand summary of this medication designed for patients and families.
+              </p>
+
+              {drugAnalysis && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* What It Is */}
+                  <div className="space-y-4">
+                    <div className="bg-white/50 rounded-lg p-4 border border-blue/20">
+                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                        <Pill className="w-5 h-5" />
+                        What is {drugName}?
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {drugName} is a medication that helps treat specific medical conditions by working inside your body at the cellular level.
+                      </p>
+                    </div>
+
+                    <div className="bg-white/50 rounded-lg p-4 border border-blue/20">
+                      <h4 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        How It Helps You
+                      </h4>
+                      <ul className="space-y-1 text-sm">
+                        {drugAnalysis.keyPoints.map((point, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
+                            <span className="text-muted-foreground">{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* How It Works & Safety */}
+                  <div className="space-y-4">
+                    <div className="bg-white/50 rounded-lg p-4 border border-blue/20">
+                      <h4 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
+                        <Brain className="w-5 h-5" />
+                        How It Works (Simple)
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {drugAnalysis.mechanismOfAction.split('.')[0]}. This helps your body function better and reduces symptoms.
+                      </p>
+                    </div>
+
+                    <div className="bg-white/50 rounded-lg p-4 border border-orange/20">
+                      <h4 className="font-semibold text-orange-700 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5" />
+                        Important Safety Information
+                      </h4>
+                      <ul className="space-y-1 text-sm">
+                        {drugAnalysis.safetyWarnings.slice(0, 3).map((warning, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
+                            <span className="text-muted-foreground">{warning}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* Detailed Drug Information */}
+            <Card className="glass-card p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Microscope className="w-6 h-6 text-primary" />
+                Detailed Medical Information
               </h3>
 
               {analysisResults ? (
@@ -1236,6 +1336,95 @@ const ResultsDisplay = ({ action, data, onBack }: ResultsDisplayProps) => {
                 </div>
               </Card>
             )}
+          </div>
+        );
+      }
+
+      case 'picturize': {
+        const drugName = data?.medication || 'Unknown Drug';
+
+        return (
+          <div className="space-y-6">
+            {/* Picturize Header */}
+            <Card className="glass-card p-6 bg-green/5 border-green/20">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                <Image className="w-8 h-8 text-green-600" />
+                Visual Mechanism Illustration
+              </h2>
+              <p className="text-muted-foreground">
+                AI-generated visual illustrations showing how <span className="font-semibold text-foreground">{drugName}</span> affects your body at the molecular level.
+              </p>
+            </Card>
+
+            {/* Drug Analysis for Image Context */}
+            {drugAnalysis && (
+              <Card className="glass-card p-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Brain className="w-6 h-6 text-primary" />
+                  Mechanism Summary
+                </h3>
+                <p className="text-muted-foreground mb-4">{drugAnalysis.mechanismOfAction}</p>
+              </Card>
+            )}
+
+            {/* Image Generation Interface */}
+            <PicturizeImageGenerator
+              drugName={drugName}
+              drugAnalysis={drugAnalysis}
+            />
+
+            {/* Educational Notes */}
+            <Card className="glass-card p-6">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Shield className="w-6 h-6 text-primary" />
+                Understanding the Visuals
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-success mb-2">What You'll See</h4>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-success" />
+                      Molecular structure of {drugName}
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-success" />
+                      Target receptors and binding sites
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-success" />
+                      Cellular pathway interactions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-success" />
+                      Therapeutic effects visualization
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-blue-600 mb-2">Educational Value</h4>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-blue-600" />
+                      Simplified complex biology
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-blue-600" />
+                      Patient-friendly explanations
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-blue-600" />
+                      Visual learning support
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-blue-600" />
+                      Medication adherence improvement
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
           </div>
         );
       }

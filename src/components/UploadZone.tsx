@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Upload, Camera, FileText, Pill, ArrowRight, Eye, BarChart3, Search, Volume2, Loader2 } from "lucide-react";
+import { Upload, Camera, FileText, Pill, ArrowRight, Eye, BarChart3, Search, Volume2, Loader2, Image, Video, Microscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -250,29 +250,29 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
     {
       id: 'overview',
       title: 'Overview',
-      description: 'Key drug information',
+      description: '',
       icon: Eye,
       gradient: 'from-blue-500 to-cyan-500'
     },
     {
+      id: 'picturize',
+      title: 'Picturize',
+      description: '',
+      icon: Image,
+      gradient: 'from-green-500 to-emerald-500'
+    },
+    {
       id: 'visualize',
       title: 'Visualize',
-      description: 'Mechanism of action',
-      icon: BarChart3,
+      description: '',
+      icon: Video,
       gradient: 'from-purple-500 to-pink-500'
     },
     {
       id: 'research',
-      title: 'Research',
-      description: 'Clinical studies',
-      icon: Search,
-      gradient: 'from-green-500 to-emerald-500'
-    },
-    {
-      id: 'vocal',
-      title: 'Vocal Summary',
-      description: 'Voice summary',
-      icon: Volume2,
+      title: 'Clinical Research',
+      description: '',
+      icon: Microscope,
       gradient: 'from-orange-500 to-red-500'
     }
   ];
@@ -313,16 +313,32 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
                 <p className="text-sm text-muted-foreground">Choose your analysis type for <span className="font-medium text-foreground">{manualInput}</span></p>
               </div>
 
-              {/* Video Duration Selector - Only show when hovering over or selecting Visualize */}
+              {/* Video Duration Selector - Only show when Visualize is selected */}
               <div
                 className={`transition-all duration-300 ${
                   showVideoOptions ? 'opacity-100 max-h-96 mb-4' : 'opacity-0 max-h-0 overflow-hidden'
                 }`}
               >
-                <VideoDurationSelector
-                  selectedDuration={videoDuration}
-                  onDurationChange={handleDurationChange}
-                />
+                <div className="glass-panel p-4 rounded-xl">
+                  <VideoDurationSelector
+                    selectedDuration={videoDuration}
+                    onDurationChange={handleDurationChange}
+                  />
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      onClick={() => handleAnalysisSelect('visualize')}
+                      className="flex-1"
+                    >
+                      Generate Video
+                    </Button>
+                    <Button
+                      onClick={() => setShowVideoOptions(false)}
+                      variant="outline"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -332,15 +348,14 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
                     <Button
                       key={option.id}
                       onClick={() => {
-                        if (option.id === 'visualize' && !showVideoOptions) {
-                          setShowVideoOptions(true);
-                        } else {
-                          handleAnalysisSelect(option.id);
-                        }
-                      }}
-                      onMouseEnter={() => {
                         if (option.id === 'visualize') {
-                          setShowVideoOptions(true);
+                          if (!showVideoOptions) {
+                            // Show video options for selection
+                            setShowVideoOptions(true);
+                          }
+                        } else {
+                          setShowVideoOptions(false); // Hide video options when other tiles are selected
+                          handleAnalysisSelect(option.id);
                         }
                       }}
                       variant="outline"
@@ -352,7 +367,12 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
                         <IconComponent className="w-5 h-5 text-white" />
                       </div>
                       <div className="text-center">
-                        <div className="font-medium text-sm">{option.title}</div>
+                        <div className="font-medium text-sm">
+                          {option.title}
+                          {option.id === 'visualize' && showVideoOptions && (
+                            <span className="text-xs block text-primary font-normal">Configure below ↓</span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{option.description}</div>
                       </div>
                     </Button>
