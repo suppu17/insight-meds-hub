@@ -41,6 +41,78 @@ export class FFmpegVideoProcessor {
   }
 
   /**
+   * Get FFmpeg core URLs with fallback CDNs
+   */
+  private getFFmpegCoreUrls(version: string = '0.12.6') {
+    return [
+      // Updated working CDN sources
+      {
+        name: 'unpkg-0.12.6',
+        baseURL: `https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm`
+      },
+      {
+        name: 'unpkg-0.12.4',
+        baseURL: `https://unpkg.com/@ffmpeg/core@0.12.4/dist/esm`
+      },
+      {
+        name: 'jsdelivr-0.12.6',
+        baseURL: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm`
+      },
+      {
+        name: 'jsdelivr-0.12.4',
+        baseURL: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/esm`
+      },
+      // Fallback to UMD if ESM fails
+      {
+        name: 'unpkg-umd-0.12.6',
+        baseURL: `https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd`
+      }
+    ];
+  }
+
+  /**
+   * Try to load FFmpeg core files from multiple CDN sources
+   */
+  private async loadFFmpegCoreWithFallback(onProgress?: (progress: FFmpegProcessingProgress) => void): Promise<{
+    coreURL: string;
+    wasmURL: string;
+    workerURL: string;
+  }> {
+    const cdnSources = this.getFFmpegCoreUrls();
+
+    for (let i = 0; i < cdnSources.length; i++) {
+      const source = cdnSources[i];
+
+      try {
+        onProgress?.({
+          stage: 'initializing',
+          progress: 10 + (i * 20),
+          message: `Trying ${source.name} CDN...`
+        });
+
+        console.log(`[FFmpeg] Attempting to load from ${source.name}: ${source.baseURL}`);
+
+        const coreURL = await toBlobURL(`${source.baseURL}/ffmpeg-core.js`, 'text/javascript');
+        const wasmURL = await toBlobURL(`${source.baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+        const workerURL = await toBlobURL(`${source.baseURL}/ffmpeg-core.worker.js`, 'text/javascript');
+
+        console.log(`[FFmpeg] Successfully loaded from ${source.name}`);
+        return { coreURL, wasmURL, workerURL };
+
+      } catch (error) {
+        console.warn(`[FFmpeg] Failed to load from ${source.name}:`, error);
+
+        if (i === cdnSources.length - 1) {
+          throw new Error(`All CDN sources failed. Last error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        // Continue to next CDN
+      }
+    }
+
+    throw new Error('All FFmpeg CDN sources failed');
+  }
+
+  /**
    * Initialize FFmpeg with worker
    */
   async initialize(onProgress?: (progress: FFmpegProcessingProgress) => void): Promise<void> {
@@ -54,27 +126,35 @@ export class FFmpegVideoProcessor {
     try {
       onProgress?.({
         stage: 'initializing',
-        progress: 10,
+        progress: 0,
         message: 'Loading FFmpeg WebAssembly core...'
       });
 
-      // Load FFmpeg core and worker from CDN
-      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-      const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
-      const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
-      const workerURL = await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript');
+      // Load FFmpeg core files with fallback strategy and timeout
+      const loadPromise = this.loadFFmpegCoreWithFallback(onProgress);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('FFmpeg loading timeout')), 30000)
+      );
+
+      const { coreURL, wasmURL, workerURL } = await Promise.race([loadPromise, timeoutPromise]);
 
       onProgress?.({
         stage: 'initializing',
-        progress: 50,
+        progress: 70,
         message: 'Initializing FFmpeg worker...'
       });
 
-      await this.ffmpeg.load({
+      // Initialize with timeout
+      const initPromise = this.ffmpeg.load({
         coreURL,
         wasmURL,
         workerURL,
       });
+      const initTimeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('FFmpeg initialization timeout')), 20000)
+      );
+
+      await Promise.race([initPromise, initTimeoutPromise]);
 
       onProgress?.({
         stage: 'initializing',
@@ -84,27 +164,93 @@ export class FFmpegVideoProcessor {
 
       this.isLoaded = true;
       this.isLoading = false;
+      console.log('[FFmpeg] Successfully initialized');
 
     } catch (error) {
       this.isLoading = false;
       console.error('Failed to initialize FFmpeg:', error);
-      throw new Error(`FFmpeg initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+      // Provide more specific error messages
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Connection timeout. Please check your internet connection and try again.';
+        } else if (error.message.includes('CORS')) {
+          errorMessage = 'Cross-origin resource loading blocked. Please refresh the page and try again.';
+        } else if (error.message.includes('CDN')) {
+          errorMessage = 'Unable to load FFmpeg resources. Please try again later.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      throw new Error(`FFmpeg initialization failed: ${errorMessage}`);
     }
   }
 
   /**
-   * Download video from URL as Uint8Array for FFmpeg
+   * Download video from URL as Uint8Array for FFmpeg with retry logic
    */
-  private async downloadVideoData(url: string): Promise<Uint8Array> {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to download video: ${response.status} ${response.statusText}`);
+  private async downloadVideoData(url: string, maxRetries: number = 3): Promise<Uint8Array> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[FFmpeg] Downloading video (attempt ${attempt}/${maxRetries}): ${url}`);
+
+        const response = await fetch(url, {
+          mode: 'cors',
+          headers: {
+            'Accept': 'video/*,*/*;q=0.8'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const contentLength = response.headers.get('content-length');
+        if (contentLength && parseInt(contentLength) === 0) {
+          throw new Error('Empty video file received');
+        }
+
+        return await fetchFile(response);
+
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.warn(`[FFmpeg] Download attempt ${attempt} failed:`, lastError.message);
+
+        if (attempt < maxRetries) {
+          // Exponential backoff: wait 1s, 2s, 4s between retries
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`[FFmpeg] Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-      return await fetchFile(response);
-    } catch (error) {
-      console.error('Error downloading video:', error);
-      throw new Error(`Failed to download video: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    throw new Error(`Failed to download video after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
+  }
+
+  /**
+   * Validate video segments before processing
+   */
+  private validateVideoSegments(segments: VideoSegment[]): void {
+    if (!segments || segments.length === 0) {
+      throw new Error('No video segments provided for concatenation');
+    }
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      if (!segment.videoUrl) {
+        throw new Error(`Segment ${i + 1} is missing video URL`);
+      }
+      if (!segment.videoUrl.startsWith('http')) {
+        throw new Error(`Segment ${i + 1} has invalid video URL: ${segment.videoUrl}`);
+      }
+      if (!segment.duration || segment.duration <= 0) {
+        throw new Error(`Segment ${i + 1} has invalid duration: ${segment.duration}`);
+      }
     }
   }
 
@@ -123,13 +269,12 @@ export class FFmpegVideoProcessor {
     const startTime = Date.now();
 
     try {
+      // Validate input segments first
+      this.validateVideoSegments(segments);
+
       // Ensure FFmpeg is initialized
       if (!this.isLoaded) {
         await this.initialize(onProgress);
-      }
-
-      if (segments.length === 0) {
-        throw new Error('No video segments provided');
       }
 
       onProgress?.({
@@ -140,22 +285,34 @@ export class FFmpegVideoProcessor {
 
       // Download all video segments
       const inputFiles: string[] = [];
+      const totalSegments = segments.length;
+
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
-        if (!segment.videoUrl || !segment.videoUrl.startsWith('http')) {
-          throw new Error(`Invalid video URL for segment ${i + 1}`);
-        }
 
         onProgress?.({
           stage: 'loading_segments',
-          progress: (i / segments.length) * 50,
-          message: `Downloading segment ${i + 1}/${segments.length}...`
+          progress: (i / totalSegments) * 50,
+          message: `Downloading segment ${i + 1}/${totalSegments}... (${segment.videoUrl.substring(0, 50)}...)`
         });
 
-        const videoData = await this.downloadVideoData(segment.videoUrl);
-        const inputFileName = `input${i}.mp4`;
-        await this.ffmpeg.writeFile(inputFileName, videoData);
-        inputFiles.push(inputFileName);
+        try {
+          const videoData = await this.downloadVideoData(segment.videoUrl);
+          const inputFileName = `input${i}.mp4`;
+
+          console.log(`[FFmpeg] Writing segment ${i + 1} to FFmpeg filesystem (${videoData.length} bytes)`);
+          await this.ffmpeg.writeFile(inputFileName, videoData);
+          inputFiles.push(inputFileName);
+
+          onProgress?.({
+            stage: 'loading_segments',
+            progress: ((i + 1) / totalSegments) * 50,
+            message: `Downloaded segment ${i + 1}/${totalSegments} (${Math.round(videoData.length / 1024)}KB)`
+          });
+
+        } catch (error) {
+          throw new Error(`Failed to download segment ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
 
       onProgress?.({
@@ -257,14 +414,44 @@ export class FFmpegVideoProcessor {
       const elapsedTime = Date.now() - startTime;
       console.error('FFmpeg concatenation failed:', error);
 
+      // Cleanup any created files
+      try {
+        const files = await this.ffmpeg.listDir('.');
+        for (const file of files) {
+          if (file.name.startsWith('input') || file.name === 'concat_list.txt' || file.name.includes('combined_video')) {
+            try {
+              await this.ffmpeg.deleteFile(file.name);
+            } catch (cleanupError) {
+              console.warn(`Failed to cleanup file ${file.name}:`, cleanupError);
+            }
+          }
+        }
+      } catch (listError) {
+        console.warn('Failed to cleanup files after error:', listError);
+      }
+
+      // Provide user-friendly error message
+      let userMessage = 'Video concatenation failed';
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to download')) {
+          userMessage = 'Unable to download video segments. Please check your internet connection and try again.';
+        } else if (error.message.includes('FFmpeg initialization')) {
+          userMessage = 'Video processing engine failed to load. Please refresh the page and try again.';
+        } else if (error.message.includes('Invalid video URL')) {
+          userMessage = 'Some video segments are invalid. Please regenerate the video content.';
+        } else {
+          userMessage = `Video processing error: ${error.message}`;
+        }
+      }
+
       onProgress?.({
         stage: 'error',
         progress: 0,
-        message: `Concatenation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: userMessage,
         timeElapsed: elapsedTime
       });
 
-      throw new Error(`Video concatenation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(userMessage);
     }
   }
 

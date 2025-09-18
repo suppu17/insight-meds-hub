@@ -193,12 +193,6 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
         <h3 className="text-xl font-bold flex items-center gap-2">
           <Image className="w-6 h-6 text-green-600" />
           AI-Generated Illustrations
-          {isGenerating && (
-            <Badge variant="secondary" className="ml-2 text-xs animate-pulse">
-              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-              Generating
-            </Badge>
-          )}
         </h3>
         <div className="flex gap-2">
           <Button
@@ -210,7 +204,7 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
             {isGenerating ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Regenerating...
+                Generating...
               </>
             ) : (
               <>
@@ -222,28 +216,21 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
         </div>
       </div>
 
-      {/* Auto-generation notice */}
-      {!isGenerating && images.every(img => !img.url && !img.error) && (
+      {/* Single consolidated generation status */}
+      {(isGenerating || generationProgress || (!isGenerating && images.every(img => !img.url && !img.error))) && (
         <div className="mb-6 p-4 glass-panel rounded-lg bg-blue/5 border-blue/20">
           <div className="flex items-center gap-3">
             <div className="animate-spin">
               <Loader2 className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="font-medium text-blue-900">Generating AI Illustrations</p>
+              <p className="font-medium text-blue-900">
+                {generationProgress || 'Generating AI Illustrations'}
+              </p>
               <p className="text-sm text-blue-700">
                 Creating molecular structure, mechanism diagram, and therapeutic effects visualizations...
               </p>
             </div>
-          </div>
-        </div>
-      )}
-
-      {generationProgress && (
-        <div className="mb-6 p-3 glass-panel rounded-lg bg-green/5 border-green/20">
-          <div className="flex items-center gap-2 text-green-700">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm font-medium">{generationProgress}</span>
           </div>
         </div>
       )}

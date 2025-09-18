@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Upload, Camera, FileText, Pill, ArrowRight, Eye, BarChart3, Search, Volume2, Loader2, Image, Video, Microscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,11 +32,12 @@ interface UploadZoneProps {
   onManualEntry: (medication: string) => void;
   onAnalyze?: (medication: string, action: string, videoDuration?: VideoDuration, videoStrategy?: GenerationStrategy) => void;
   onDocumentAnalysis?: (extractedInfo: ExtractedMedicalInfo, primaryMedication: string) => void;
+  currentMedication?: string; // Add this to show persistent medication
 }
 
-const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis }: UploadZoneProps) => {
+const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis, currentMedication }: UploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [manualInput, setManualInput] = useState("");
+  const [manualInput, setManualInput] = useState(currentMedication || "");
   const [videoDuration, setVideoDuration] = useState<VideoDuration>('8s');
   const [videoStrategy, setVideoStrategy] = useState<GenerationStrategy>('parallel');
   const [showVideoOptions, setShowVideoOptions] = useState(false);
@@ -53,6 +54,13 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
   // Document processing state
   const [isProcessingDocument, setIsProcessingDocument] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+
+  // Update input when currentMedication changes
+  useEffect(() => {
+    if (currentMedication && currentMedication !== manualInput) {
+      setManualInput(currentMedication);
+    }
+  }, [currentMedication]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

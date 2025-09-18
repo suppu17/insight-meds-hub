@@ -260,8 +260,8 @@ export class BackendVideoProcessor {
   async waitForCompletion(
     jobId: string,
     onProgress?: (progress: VideoProcessingProgress) => void,
-    pollInterval: number = 1000,
-    timeout: number = 300000 // 5 minutes
+    pollInterval: number = 2000, // Increased polling interval to reduce server load
+    timeout: number = 180000 // Reduced to 3 minutes for faster fallback
   ): Promise<CombinedVideoResult> {
     const startTime = Date.now();
 

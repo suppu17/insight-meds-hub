@@ -8,7 +8,8 @@ Insight Meds Hub is a healthcare web application that provides AI-powered medica
 
 ## Tech Stack
 
-- **Frontend Framework**: React 18 with TypeScript
+### Frontend
+- **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Routing**: React Router DOM
@@ -16,9 +17,18 @@ Insight Meds Hub is a healthcare web application that provides AI-powered medica
 - **UI Components**: shadcn/ui (Radix UI primitives)
 - **Icons**: Lucide React
 - **Form Handling**: React Hook Form with Zod validation
+- **Cloud Services**: AWS SDK (Bedrock, S3), FAL AI client
+
+### Backend
+- **Framework**: FastAPI with Python
+- **AI Services**: Multi-agent workflow with OpenAI GPT-4, Google Gemini Pro
+- **Data Intelligence**: Bright Data platform integration
+- **Real-time**: Server-Sent Events for streaming responses
+- **Data Sources**: FDA, PubMed, ClinicalTrials.gov APIs
 
 ## Development Commands
 
+### Frontend Development
 ```bash
 # Install dependencies
 npm install
@@ -39,28 +49,72 @@ npm run lint
 npm run preview
 ```
 
+### Backend Development
+```bash
+# Setup backend environment and dependencies
+npm run backend:setup
+
+# Start backend server (FastAPI on port 8000)
+npm run backend:start
+
+# Start backend in development mode with auto-reload
+npm run backend:dev
+
+# Test backend API endpoints
+npm run backend:test
+```
+
+### Full-Stack Development
+```bash
+# Install both frontend and backend dependencies
+npm run setup
+
+# Run both frontend and backend concurrently
+npm run fullstack
+```
+
 ## Project Structure
 
 ```
-src/
-├── components/           # React components
-│   ├── ui/              # shadcn/ui components (auto-generated)
-│   ├── UploadZone.tsx   # File upload and manual entry component
-│   ├── ActionButtons.tsx # Main action buttons for analysis
-│   ├── ResultsDisplay.tsx # Results and insights display
-│   ├── MedInsightLogo.tsx # App logo component
-│   └── AdditionalFeatures.tsx # Additional feature tiles
-├── pages/               # Page components
-│   ├── Index.tsx        # Main application page
-│   └── NotFound.tsx     # 404 page
-├── lib/                 # Utilities
-│   └── utils.ts         # Shared utility functions
-├── hooks/               # Custom React hooks
-├── assets/              # Static assets
-└── main.tsx            # Application entry point
+├── src/                  # Frontend React application
+│   ├── components/           # React components
+│   │   ├── ui/              # shadcn/ui components (auto-generated)
+│   │   ├── UploadZone.tsx   # File upload and manual entry component
+│   │   ├── ActionButtons.tsx # Main action buttons for analysis
+│   │   ├── ResultsDisplay.tsx # Results and insights display
+│   │   ├── MedInsightLogo.tsx # App logo component
+│   │   └── AdditionalFeatures.tsx # Additional feature tiles
+│   ├── pages/               # Page components
+│   │   ├── Index.tsx        # Main application page
+│   │   └── NotFound.tsx     # 404 page
+│   ├── lib/                 # Utilities
+│   │   └── utils.ts         # Shared utility functions
+│   ├── hooks/               # Custom React hooks
+│   ├── assets/              # Static assets
+│   └── main.tsx            # Application entry point
+├── backend/              # FastAPI backend service
+│   ├── app/
+│   │   ├── main.py              # FastAPI application entry point
+│   │   ├── api/endpoints/       # API route handlers
+│   │   ├── core/config.py       # Application configuration
+│   │   ├── models/              # Pydantic data models
+│   │   ├── services/            # Business logic and AI services
+│   │   └── utils/               # Backend utility functions
+│   ├── requirements.txt         # Python dependencies
+│   ├── .env.example            # Environment variables template
+│   ├── startup.py              # Automated startup script
+│   └── test_api.py             # API testing script
+└── package.json          # Frontend dependencies and scripts
 ```
 
 ## Architecture Notes
+
+### Full-Stack Architecture
+- **Frontend**: React SPA with TypeScript serving the user interface
+- **Backend**: FastAPI service providing AI-powered drug analysis APIs
+- **Communication**: REST APIs with Server-Sent Events for real-time streaming
+- **AI Integration**: Multi-agent system using OpenAI GPT-4 and Google Gemini Pro
+- **Data Sources**: Integration with FDA, PubMed, ClinicalTrials.gov, and Bright Data
 
 ### Component Architecture
 - **Single Page Application**: Uses React Router with main routes defined in `App.tsx`
@@ -88,10 +142,47 @@ src/
 
 ## Key Configuration Files
 
+### Frontend Configuration
 - **`components.json`**: shadcn/ui configuration with path aliases
 - **`tailwind.config.ts`**: Extended Tailwind configuration with custom theme
 - **`vite.config.ts`**: Vite configuration with path aliases and development server settings
 - **`eslint.config.js`**: ESLint configuration for TypeScript and React
+
+### Backend Configuration
+- **`backend/.env`**: Environment variables for API keys and configuration
+- **`backend/.env.example`**: Template for required environment variables
+- **`backend/requirements.txt`**: Python dependencies for FastAPI backend
+- **`backend/app/core/config.py`**: Application configuration and settings
+
+## Environment Setup
+
+### Backend Environment Variables
+The backend requires several API keys to be configured in `backend/.env`:
+
+```env
+# Required: AI Models (at least one)
+OPENAI_API_KEY=your_openai_key_here
+GOOGLE_API_KEY=your_google_gemini_key_here
+
+# Required: Data Intelligence
+BRIGHT_DATA_API_KEY=your_bright_data_key_here
+
+# Optional: Database and Cache
+DATABASE_URL=sqlite:///./app.db
+REDIS_URL=redis://localhost:6379
+```
+
+### Quick Start
+1. Copy `backend/.env.example` to `backend/.env`
+2. Add your API keys to the `.env` file
+3. Run `npm run setup` to install all dependencies
+4. Run `npm run fullstack` to start both frontend and backend
+
+### API Endpoints
+- **Frontend**: http://localhost:8080 (Vite dev server)
+- **Backend API**: http://localhost:8000 (FastAPI)
+- **API Documentation**: http://localhost:8000/docs (Swagger UI)
+- **Health Check**: http://localhost:8000/health
 
 ## Development Guidelines
 

@@ -2,14 +2,18 @@ import { useState } from "react";
 import MedInsightLogo from "@/components/MedInsightLogo";
 import UploadZone from "@/components/UploadZone";
 import ResultsDisplay from "@/components/ResultsDisplay";
+import HistorySection from "@/components/HistorySection";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Globe, Clock, FileText, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Shield, Users, Globe, Clock, FileText, MessageSquare, History } from "lucide-react";
 import heroImage from "@/assets/medical-hero-bg.jpg";
+import { type HistoryEntry } from "@/lib/historyService";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'home' | 'results'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'results' | 'history'>('home');
   const [currentAction, setCurrentAction] = useState<string>('');
+  const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const [uploadedData, setUploadedData] = useState<{
     files?: File[];
     medication?: string;
@@ -67,7 +71,26 @@ const Index = () => {
   const handleBack = () => {
     setCurrentView('home');
     setCurrentAction('');
-    setUploadedData(null);
+    // Keep uploadedData so drug name persists in search bar
+    // setUploadedData(null); // Commented out to maintain persistence
+    setCurrentHistoryId(null);
+  };
+
+  const handleHistoryView = () => {
+    setCurrentView('history');
+  };
+
+  const handleSelectHistoryEntry = (entry: HistoryEntry) => {
+    setUploadedData({
+      medication: entry.medication,
+      type: entry.data.type || 'manual',
+      videoDuration: entry.data.videoDuration,
+      videoStrategy: entry.data.videoStrategy,
+      extractedInfo: entry.data.extractedInfo
+    });
+    setCurrentAction(entry.action);
+    setCurrentHistoryId(entry.id);
+    setCurrentView('results');
   };
 
   const features = [
@@ -105,6 +128,23 @@ const Index = () => {
             action={currentAction}
             data={uploadedData}
             onBack={handleBack}
+            historyEntryId={currentHistoryId}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (currentView === 'history') {
+    return (
+      <div className="min-h-screen p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <MedInsightLogo />
+          </div>
+          <HistorySection
+            onSelectEntry={handleSelectHistoryEntry}
+            onBack={handleBack}
           />
         </div>
       </div>
@@ -126,14 +166,25 @@ const Index = () => {
         <header className="p-6">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
             <MedInsightLogo />
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="glass-panel">
-                <Shield className="w-3 h-3 mr-1" />
-                Secure
-              </Badge>
-              <Badge variant="secondary" className="glass-panel">
-                No Login Required
-              </Badge>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleHistoryView}
+                variant="glass"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <History className="w-4 h-4" />
+                <span className="hidden sm:inline">History</span>
+              </Button>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="glass-panel">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Secure
+                </Badge>
+                <Badge variant="secondary" className="glass-panel">
+                  No Login Required
+                </Badge>
+              </div>
             </div>
           </div>
         </header>
@@ -180,6 +231,7 @@ const Index = () => {
                   onManualEntry={handleManualEntry}
                   onAnalyze={handleAnalyzeAndVisualize}
                   onDocumentAnalysis={handleDocumentAnalysis}
+                  currentMedication={uploadedData?.medication}
                 />
               </Card>
             </div>

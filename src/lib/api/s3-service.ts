@@ -463,16 +463,26 @@ export class S3VideoService {
  * Create S3 service instance from environment variables
  */
 export function createS3VideoService(): S3VideoService {
-  const config = getS3ConfigFromEnv();
-
   try {
+    const config = getS3ConfigFromEnv();
     return new S3VideoService(config);
-  } catch (error) {
-    console.warn('Failed to create real S3 service, using mock service for testing:', error);
+  } catch (configError) {
+    console.warn('S3 configuration error, falling back to mock service:', configError);
 
-    // Import and use mock service if real S3 fails
-    const { MockS3VideoService } = require('./mock-s3-service');
-    return new MockS3VideoService(config) as any;
+    // Use mock service with default config when real S3 config is missing
+    try {
+      const { MockS3VideoService } = require('./mock-s3-service');
+      const mockConfig = {
+        region: 'us-east-1',
+        bucketName: 'mock-bucket',
+        accessKeyId: 'mock',
+        secretAccessKey: 'mock'
+      };
+      return new MockS3VideoService(mockConfig) as any;
+    } catch (mockError) {
+      console.error('Failed to create mock S3 service:', mockError);
+      throw new Error('Unable to initialize video storage service. Please check your configuration.');
+    }
   }
 }
 
