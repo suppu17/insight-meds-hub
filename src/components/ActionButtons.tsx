@@ -1,4 +1,4 @@
-import { Eye, BarChart3, Search, Volume2, Stethoscope, AlertTriangle } from "lucide-react";
+import { Eye, BarChart3, Search, Volume2, Microscope, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ActionButtonsProps {
@@ -26,24 +26,40 @@ const ActionButtons = ({ onAction, isLoading = false }: ActionButtonsProps) => {
     },
     {
       id: 'research',
-      title: 'Latest Research',
-      description: 'Current clinical studies',
+      title: 'Clinical Research',
+      description: 'Latest studies & trials',
       icon: Search,
       gradient: 'bg-gradient-primary',
       delay: '200ms'
     },
     {
+      id: 'deep_research',
+      title: 'Deep Research',
+      description: 'AI-powered market intelligence',
+      icon: Microscope,
+      gradient: 'bg-gradient-accent',
+      delay: '250ms'
+    },
+    {
+      id: 'competitive',
+      title: 'Market Analysis',
+      description: 'Competitive landscape & pricing',
+      icon: TrendingUp,
+      gradient: 'bg-gradient-primary',
+      delay: '300ms'
+    },
+    {
       id: 'vocal',
-      title: 'Summarize Vocally',
-      description: 'Multi-language voice summary',
+      title: 'Voice Summary',
+      description: 'Multi-language audio',
       icon: Volume2,
       gradient: 'bg-gradient-accent',
-      delay: '300ms'
+      delay: '350ms'
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {actions.map((action) => {
         const IconComponent = action.icon;
         return (

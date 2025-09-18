@@ -6,6 +6,7 @@ import { ArrowLeft, Shield, AlertTriangle, Clock, CheckCircle, ExternalLink, Bra
 import VideoGenerationProgress, { VideoGenerationStage } from "@/components/VideoGenerationProgress";
 import VideoPlayer from "@/components/VideoPlayer";
 import SegmentPreview from "@/components/SegmentPreview";
+import PatientAnalysisDisplay from "@/components/PatientAnalysisDisplay";
 import { analyzeDrugMechanism, enhanceVideoPrompts, DrugAnalysisResult } from "@/lib/api/bedrock";
 import { generateChainedVideo, generateMechanismImage, VideoSegment } from "@/lib/api/fal";
 import { concatenateVideoSegments, concatenateVideoSegmentsWithTimeout, createVirtualCombinedVideo, CombinedVideoResult, VideoProcessingProgress } from "@/lib/api/videoProcessor";
@@ -18,13 +19,84 @@ import {
   SegmentGenerationCallback
 } from "@/lib/api/enhancedVideoGenerator";
 import { drugAnalysisAPI, DrugAnalysisRequest, AnalysisProgress } from "@/lib/api/drugAnalysisApi";
+import { generateClinicalRecommendations } from "@/lib/utils/clinicalDecisionSupport";
+
+// Interface for extracted medical information (matching documentProcessor.ts)
+interface ExtractedMedicalInfo {
+  medications: string[];
+  symptoms: string[];
+  clinicalNotes: string[];
+  dosageRegimen: string[];
+  rxIndications: string[];
+  patientInfo?: {
+    name?: string;
+    age?: string;
+    dob?: string;
+    gender?: string;
+    mrn?: string;
+  };
+  vitals?: {
+    bloodPressure?: string;
+    heartRate?: string;
+    temperature?: string;
+    respiratoryRate?: string;
+    oxygenSaturation?: string;
+    weight?: string;
+    height?: string;
+    bmi?: string;
+  };
+  medicalHistory?: {
+    pastMedicalHistory?: string[];
+    familyHistory?: string[];
+    socialHistory?: string[];
+    surgicalHistory?: string[];
+    allergies?: string[];
+    chronicConditions?: string[];
+  };
+  concomitantMedications?: {
+    medication: string;
+    dosage: string;
+    frequency: string;
+    indication: string;
+    startDate?: string;
+  }[];
+  labResults?: {
+    testName: string;
+    value: string;
+    unit?: string;
+    referenceRange?: string;
+    date?: string;
+  }[];
+  assessment?: {
+    primaryDiagnosis?: string;
+    secondaryDiagnoses?: string[];
+    treatmentPlan?: string[];
+    followUpInstructions?: string[];
+  };
+  prescriber?: {
+    name?: string;
+    npi?: string;
+    clinic?: string;
+    specialty?: string;
+    contactInfo?: string;
+  };
+  documentInfo?: {
+    type: 'prescription' | 'medical_report' | 'lab_report' | 'discharge_summary' | 'other';
+    date?: string;
+    facility?: string;
+  };
+  rawText: string;
+}
 
 interface ResultsDisplayProps {
   action: string;
   data: {
     medication?: string;
     files?: File[];
-    type?: 'upload' | 'manual';
+    type?: 'upload' | 'manual' | 'document';
+    videoDuration?: string;
+    videoStrategy?: string;
+    extractedInfo?: ExtractedMedicalInfo; // Medical info extracted from document
   } | null;
   onBack: () => void;
 }
@@ -992,8 +1064,34 @@ const ResultsDisplay = ({ action, data, onBack }: ResultsDisplayProps) => {
       case 'overview': {
         const drugName = data?.medication || 'Unknown Drug';
 
+        // Generate personalized clinical recommendations if we have patient data
+        const clinicalRecommendations = data?.extractedInfo ? generateClinicalRecommendations(
+          drugName,
+          {
+            age: data.extractedInfo.patientInfo?.age,
+            gender: data.extractedInfo.patientInfo?.gender,
+            weight: data.extractedInfo.vitals?.weight,
+            height: data.extractedInfo.vitals?.height,
+            bmi: data.extractedInfo.vitals?.bmi,
+            allergies: data.extractedInfo.medicalHistory?.allergies,
+            medicalHistory: data.extractedInfo.medicalHistory?.pastMedicalHistory,
+            concomitantMedications: data.extractedInfo.concomitantMedications,
+            labResults: data.extractedInfo.labResults,
+            vitals: data.extractedInfo.vitals
+          }
+        ) : undefined;
+
         return (
           <div className="space-y-6">
+            {/* Comprehensive Patient Analysis - Show when document was processed */}
+            {data?.extractedInfo && (
+              <PatientAnalysisDisplay
+                extractedInfo={data.extractedInfo}
+                primaryMedication={drugName}
+                recommendations={clinicalRecommendations}
+              />
+            )}
+
             {/* Executive Summary */}
             {executiveSummary && (
               <Card className="glass-card p-6 bg-primary/5 border-primary/20">

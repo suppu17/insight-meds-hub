@@ -1,18 +1,23 @@
 import { useState } from "react";
 import MedInsightLogo from "@/components/MedInsightLogo";
 import UploadZone from "@/components/UploadZone";
-import ActionButtons from "@/components/ActionButtons";
-import AdditionalFeatures from "@/components/AdditionalFeatures";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Globe, Clock } from "lucide-react";
+import { Shield, Users, Globe, Clock, FileText, MessageSquare } from "lucide-react";
 import heroImage from "@/assets/medical-hero-bg.jpg";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'home' | 'results'>('home');
   const [currentAction, setCurrentAction] = useState<string>('');
-  const [uploadedData, setUploadedData] = useState<any>(null);
+  const [uploadedData, setUploadedData] = useState<{
+    files?: File[];
+    medication?: string;
+    type: 'upload' | 'manual' | 'document';
+    videoDuration?: string;
+    videoStrategy?: string;
+    extractedInfo?: any; // Medical info extracted from document
+  } | null>(null);
 
   const handleFileUpload = (files: File[]) => {
     console.log('Files uploaded:', files);
@@ -25,7 +30,36 @@ const Index = () => {
     setUploadedData({ medication, type: 'manual' });
   };
 
+  const handleAnalyzeAndVisualize = (medication: string, action: string, videoDuration?: string, videoStrategy?: string) => {
+    console.log('Analyzing:', medication, 'with action:', action, 'duration:', videoDuration, 'strategy:', videoStrategy);
+    setUploadedData({
+      medication,
+      type: 'manual',
+      videoDuration,
+      videoStrategy
+    });
+    setCurrentAction(action);
+    setCurrentView('results');
+  };
+
+  const handleDocumentAnalysis = (extractedInfo: any, primaryMedication: string) => {
+    console.log('Document analysis:', extractedInfo, 'Primary medication:', primaryMedication);
+    setUploadedData({
+      medication: primaryMedication,
+      type: 'document',
+      extractedInfo
+    });
+    // Auto-navigate to results with overview action
+    setCurrentAction('overview');
+    setCurrentView('results');
+  };
+
   const handleAction = (action: string) => {
+    if (!uploadedData) {
+      // If no data uploaded yet, stay on home and show message
+      console.log('Please enter medication first');
+      return;
+    }
     setCurrentAction(action);
     setCurrentView('results');
   };
@@ -33,30 +67,32 @@ const Index = () => {
   const handleBack = () => {
     setCurrentView('home');
     setCurrentAction('');
+    setUploadedData(null);
   };
 
   const features = [
     {
+      icon: FileText,
+      title: "Visit Summary",
+      description: "Comprehensive visit analysis"
+    },
+    {
       icon: Shield,
-      title: "HIPAA Compliant",
-      description: "Your data is secure and private"
-    },
-    {
-      icon: Globe,
-      title: "Multi-Language",
-      description: "Support for 20+ languages"
-    },
-    {
-      icon: Users,
-      title: "AI-Powered",
-      description: "Advanced medical AI analysis"
+      title: "Symptom Checker",
+      description: "AI-powered symptom analysis"
     },
     {
       icon: Clock,
       title: "Real-Time",
       description: "Instant medication insights"
+    },
+    {
+      icon: MessageSquare,
+      title: "Voice AI ChatBot",
+      description: "Interactive medical assistant"
     }
   ];
+
 
   if (currentView === 'results') {
     return (
@@ -136,45 +172,16 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-              {/* Upload Section */}
-              <div className="space-y-8">
-                <Card className="glass-card p-8">
-                  
-                  <UploadZone
-                    onFileUpload={handleFileUpload}
-                    onManualEntry={handleManualEntry}
-                  />
-                </Card>
-
-              </div>
-
-              {/* Actions Section */}
-              <div className="space-y-8">
-                <Card className="glass-card p-8">
-                  <div className="text-center mb-6">
-                    <h2 className="text-2xl font-semibold mb-2">
-                      Available Actions
-                    </h2>
-                    <p className="text-muted-foreground">
-                      Comprehensive medication analysis tools
-                    </p>
-                  </div>
-                  
-                  <ActionButtons
-                    onAction={handleAction}
-                    isLoading={false}
-                  />
-                </Card>
-                
-                <Card className="glass-card p-8">
-                  <AdditionalFeatures
-                    onAction={handleAction}
-                    isLoading={false}
-                  />
-                </Card>
-              </div>
+            {/* Main Content - Single Column */}
+            <div className="max-w-4xl mx-auto">
+              <Card className="glass-card p-8">
+                <UploadZone
+                  onFileUpload={handleFileUpload}
+                  onManualEntry={handleManualEntry}
+                  onAnalyze={handleAnalyzeAndVisualize}
+                  onDocumentAnalysis={handleDocumentAnalysis}
+                />
+              </Card>
             </div>
 
             {/* Trust Indicators */}
