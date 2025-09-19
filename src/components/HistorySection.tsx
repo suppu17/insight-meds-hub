@@ -141,7 +141,7 @@ const HistorySection = ({ onSelectEntry, onBack }: HistorySectionProps) => {
             <p className="text-muted-foreground max-w-md mx-auto">
               Your recent medication searches will appear here. Start by searching for a medication or uploading a prescription.
             </p>
-            <Button onClick={onBack} variant="outline" className="mt-4">
+            <Button onClick={onBack} variant="outline" className="mt-4 rounded-xl shadow-lg">
               Start New Search
             </Button>
           </div>
@@ -171,7 +171,7 @@ const HistorySection = ({ onSelectEntry, onBack }: HistorySectionProps) => {
         </div>
 
         {historyEntries.length > 0 && (
-          <Button onClick={handleClearAllHistory} variant="outline" size="sm">
+          <Button onClick={handleClearAllHistory} variant="outline" size="sm" className="rounded-xl shadow-lg">
             <Trash2 className="w-4 h-4 mr-2" />
             Clear All
           </Button>

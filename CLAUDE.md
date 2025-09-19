@@ -38,7 +38,7 @@ Insight Meds Hub is a comprehensive healthcare web application that provides:
 # Install dependencies
 npm install
 
-# Start development server (runs on port 8080)
+# Start development server (runs on port 3000)
 npm run dev
 
 # Build for production
@@ -185,7 +185,7 @@ REDIS_URL=redis://localhost:6379
 4. Run `npm run fullstack` to start both frontend and backend
 
 ### API Endpoints
-- **Frontend**: http://localhost:8080 (Vite dev server)
+- **Frontend**: http://localhost:3000 (Vite dev server)
 - **Backend API**: http://localhost:8000 (FastAPI)
 - **API Documentation**: http://localhost:8000/docs (Swagger UI)
 - **Health Check**: http://localhost:8000/health

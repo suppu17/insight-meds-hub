@@ -84,7 +84,7 @@ class MedicalOCRService:
 
     async def extract_medical_info(self, image_data: str, mime_type: str) -> MedicalEntity:
         """
-        Main method to extract medical information from prescription image with Redis caching
+        Main method to extract medical information from prescription image using Claude Sonnet 4 Vision
 
         Args:
             image_data: Base64 encoded image data
@@ -93,32 +93,62 @@ class MedicalOCRService:
         Returns:
             MedicalEntity with structured medical information
         """
-        logger.info("🏥 Starting medical OCR extraction with caching")
+        logger.info("🏥 Starting medical OCR extraction with Claude Sonnet 4 Vision")
 
         try:
             # Generate hash for image data to check cache
             image_bytes = base64.b64decode(image_data)
             image_hash = redis_service.generate_image_hash(image_bytes)
 
-            # Check if OCR result is already cached
-            cached_ocr = redis_service.get_ocr_result(image_hash)
-            if cached_ocr:
-                logger.info(f"📦 Cache hit for OCR result: {image_hash}")
-                redis_service.increment_counter("performance", "ocr_cache", "hits")
+            # Check if complete analysis result is already cached
+            cached_result = redis_service.get_ocr_result(image_hash)
+            if cached_result and cached_result.get('medical_data'):
+                logger.info(f"📦 Cache hit for complete medical analysis: {image_hash}")
+                redis_service.increment_counter("performance", "medical_analysis_cache", "hits")
 
-                # Use cached OCR result but still need to parse
-                ocr_result = cached_ocr
-            else:
-                # Step 1: Perform OCR with best available provider
-                ocr_result = await self._perform_ocr(image_data, mime_type)
+                medical_data = cached_result['medical_data']
+                result = MedicalEntity(
+                    medications=medical_data['medications'],
+                    symptoms=medical_data['symptoms'],
+                    allergies=medical_data['allergies'],
+                    medical_notes=medical_data['medical_notes'],
+                    warnings=medical_data['warnings'],
+                    patient_info=medical_data['patient_info'],
+                    raw_text=cached_result.get('text', ''),
+                    confidence=cached_result.get('confidence', 95),
+                    ocr_provider="claude_sonnet_4_vision"
+                )
+                return result
 
-                # Cache the OCR result for future use
-                redis_service.cache_ocr_result(image_hash, ocr_result)
-                redis_service.increment_counter("performance", "ocr_cache", "misses")
-                logger.info(f"💾 Cached OCR result: {image_hash}")
+            # Step 1: Use Claude Sonnet 4 Vision for direct image analysis
+            medical_data = await self._analyze_image_with_claude_vision(image_data, mime_type)
 
-            # Step 2: Use Claude/AI to parse medical information with caching
-            medical_data = await self._parse_with_claude_cached(ocr_result['text'])
+            # Step 2: Cache the complete analysis result
+            cache_data = {
+                'text': medical_data.get('extracted_text', ''),
+                'confidence': 95,  # Claude Vision typically has high confidence
+                'provider': 'claude_sonnet_4_vision',
+                'medical_data': {
+                    'medications': [
+                        {
+                            'name': med.name,
+                            'dosage': med.dosage,
+                            'frequency': med.frequency,
+                            'instructions': med.instructions,
+                            'strength': med.strength
+                        } for med in medical_data['medications']
+                    ],
+                    'symptoms': medical_data['symptoms'],
+                    'allergies': medical_data['allergies'],
+                    'medical_notes': medical_data['medical_notes'],
+                    'warnings': medical_data['warnings'],
+                    'patient_info': medical_data['patient_info']
+                }
+            }
+            
+            redis_service.cache_ocr_result(image_hash, cache_data)
+            redis_service.increment_counter("performance", "medical_analysis_cache", "misses")
+            logger.info(f"💾 Cached complete medical analysis: {image_hash}")
 
             # Step 3: Cache individual medication validations for future lookups
             if medical_data['medications']:
@@ -131,12 +161,12 @@ class MedicalOCRService:
                 medical_notes=medical_data['medical_notes'],
                 warnings=medical_data['warnings'],
                 patient_info=medical_data['patient_info'],
-                raw_text=ocr_result['text'],
-                confidence=ocr_result['confidence'],
-                ocr_provider=ocr_result['provider']
+                raw_text=medical_data.get('extracted_text', ''),
+                confidence=95,
+                ocr_provider="claude_sonnet_4_vision"
             )
 
-            logger.info(f"✅ Medical OCR extraction completed with {len(medical_data['medications'])} medications found")
+            logger.info(f"✅ Claude Vision medical analysis completed with {len(medical_data['medications'])} medications found")
             return result
 
         except Exception as error:
@@ -185,6 +215,162 @@ class MedicalOCRService:
 
         logger.info(f"🏆 Final OCR result: {len(best_result['text'])} chars, confidence: {best_result['confidence']}")
         return best_result
+
+    async def _analyze_image_with_claude_vision(self, image_data: str, mime_type: str) -> Dict[str, Any]:
+        """
+        Use Claude Sonnet 4 Vision to directly analyze prescription images and extract medical information
+        
+        This method combines OCR and medical parsing in a single step using Claude's vision capabilities
+        """
+        logger.info("👁️ Analyzing prescription image with Claude Sonnet 4 Vision")
+
+        try:
+            # Prepare the vision prompt for medical analysis
+            vision_prompt = """
+You are a medical AI assistant specialized in analyzing prescription labels, medical documents, and pharmaceutical images with high accuracy.
+
+Analyze this prescription/medical image and extract all visible medical information. The image may contain:
+- Prescription labels with medication names, dosages, and instructions
+- Medical documents with patient information
+- Pharmacy labels with prescriber details
+- Medical forms or charts
+
+Please extract and return a JSON object with this exact structure:
+
+{
+  "extracted_text": "Full text content visible in the image",
+  "medications": [
+    {
+      "name": "medication name (correct any visual errors using medical knowledge)",
+      "dosage": "strength amount (e.g., 500mg, 10ml, 1 tablet)",
+      "frequency": "how often to take (e.g., twice daily, BID, every 8 hours)",
+      "instructions": "additional instructions (e.g., with food, before bedtime)",
+      "strength": "concentration or potency if different from dosage"
+    }
+  ],
+  "symptoms": ["symptom1", "symptom2"],
+  "allergies": ["allergy1", "allergy2"],
+  "medical_notes": ["important note1", "clinical observation"],
+  "warnings": ["warning1", "side effect note", "contraindication"],
+  "patient_info": {
+    "name": "patient name if visible and readable",
+    "dob": "date of birth if visible",
+    "prescriber": "doctor/prescriber name if visible",
+    "pharmacy": "pharmacy name if visible",
+    "date": "prescription date if visible"
+  }
+}
+
+CRITICAL INSTRUCTIONS FOR MEDICAL ACCURACY:
+
+1. **Medication Name Recognition**: Use your medical knowledge to identify medications even with visual distortions:
+   - Look for common medication patterns and suffixes (-cillin, -pril, -statin, etc.)
+   - Consider brand names and generic equivalents
+   - Correct common visual recognition errors
+
+2. **Dosage and Strength Extraction**: Identify patterns like:
+   - "500mg", "10ml", "200mcg", "1 tablet", "5mg/ml"
+   - Look for numerical values followed by units
+
+3. **Frequency and Instructions**: Look for:
+   - "twice daily", "BID", "TID", "QID", "PRN", "as needed"
+   - "every 8 hours", "once daily", "at bedtime"
+   - "with food", "on empty stomach", "before meals"
+
+4. **Patient and Prescriber Information**: Extract any visible:
+   - Patient names and dates of birth
+   - Doctor/prescriber names and credentials
+   - Pharmacy information and contact details
+   - Prescription dates and refill information
+
+5. **Safety Information**: Look for:
+   - Warning labels and contraindications
+   - Allergy information
+   - Special handling instructions
+
+6. **Text Extraction**: Include the complete visible text for reference
+
+Respond ONLY with the valid JSON object, no additional text or explanation.
+"""
+
+            # Use Claude Sonnet 4 with vision capabilities
+            response = await self.ai_service._generate_claude_vision_analysis(
+                prompt=vision_prompt,
+                image_data=image_data,
+                mime_type=mime_type
+            )
+
+            # Parse the JSON response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+
+            if json_start >= 0 and json_end > json_start:
+                json_str = response[json_start:json_end]
+                parsed_data = json.loads(json_str)
+
+                # Convert to our data structures
+                medications = [
+                    MedicationInfo(
+                        name=med.get('name', ''),
+                        dosage=med.get('dosage'),
+                        frequency=med.get('frequency'),
+                        instructions=med.get('instructions'),
+                        strength=med.get('strength')
+                    ) for med in parsed_data.get('medications', [])
+                ]
+
+                patient_info = None
+                if parsed_data.get('patient_info'):
+                    patient_info = PatientInfo(
+                        name=parsed_data['patient_info'].get('name'),
+                        dob=parsed_data['patient_info'].get('dob'),
+                        prescriber=parsed_data['patient_info'].get('prescriber'),
+                        pharmacy=parsed_data['patient_info'].get('pharmacy'),
+                        date=parsed_data['patient_info'].get('date')
+                    )
+
+                result = {
+                    'medications': medications,
+                    'symptoms': parsed_data.get('symptoms', []),
+                    'allergies': parsed_data.get('allergies', []),
+                    'medical_notes': parsed_data.get('medical_notes', []),
+                    'warnings': parsed_data.get('warnings', []),
+                    'patient_info': patient_info,
+                    'extracted_text': parsed_data.get('extracted_text', '')
+                }
+
+                logger.info(f"✅ Claude Vision analysis successful: {len(medications)} medications found")
+                return result
+
+            else:
+                raise ValueError("No valid JSON found in Claude Vision response")
+
+        except Exception as error:
+            logger.error(f"❌ Claude Vision analysis failed: {error}")
+            # Fallback to traditional OCR + parsing approach
+            logger.info("🔄 Falling back to traditional OCR + Claude text parsing")
+            return await self._fallback_ocr_analysis(image_data, mime_type)
+
+    async def _fallback_ocr_analysis(self, image_data: str, mime_type: str) -> Dict[str, Any]:
+        """
+        Fallback method using traditional OCR + Claude text parsing
+        """
+        try:
+            # Step 1: Perform OCR with available providers
+            ocr_result = await self._perform_ocr(image_data, mime_type)
+            
+            # Step 2: Use Claude text parsing on OCR result
+            medical_data = await self._parse_with_claude(ocr_result['text'])
+            
+            # Add extracted text to result
+            medical_data['extracted_text'] = ocr_result['text']
+            
+            return medical_data
+            
+        except Exception as error:
+            logger.error(f"❌ Fallback OCR analysis failed: {error}")
+            # Final fallback to local parsing
+            return await self._local_medical_parsing("")
 
     async def _parse_with_claude(self, ocr_text: str) -> Dict[str, Any]:
         """

@@ -47,7 +47,7 @@ Add this CORS configuration to allow web uploads:
     {
         "AllowedHeaders": ["*"],
         "AllowedMethods": ["PUT", "POST", "GET"],
-        "AllowedOrigins": ["http://localhost:8080", "https://yourdomain.com"],
+        "AllowedOrigins": ["http://localhost:3000", "https://yourdomain.com"],
         "ExposeHeaders": ["ETag"],
         "MaxAgeSeconds": 3000
     }

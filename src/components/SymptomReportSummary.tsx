@@ -223,31 +223,31 @@ const SymptomReportSummary: React.FC<SymptomReportSummaryProps> = ({
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-600">{stats.totalEntries}</div>
-                  <div className="text-sm text-blue-600">Total Entries</div>
+                <div className="text-center p-4 bg-stone-800/40 backdrop-blur-sm rounded-xl border border-stone-700/50 shadow-lg">
+                  <div className="text-2xl font-bold text-blue-400">{stats.totalEntries}</div>
+                  <div className="text-sm text-white/80">Total Entries</div>
                 </div>
                 
-                <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-2xl font-bold text-green-600">{stats.severityCount.mild}</div>
-                  <div className="text-sm text-green-600">Mild Symptoms</div>
+                <div className="text-center p-4 bg-stone-800/40 backdrop-blur-sm rounded-xl border border-stone-700/50 shadow-lg">
+                  <div className="text-2xl font-bold text-green-400">{stats.severityCount.mild}</div>
+                  <div className="text-sm text-white/80">Mild Symptoms</div>
                 </div>
                 
-                <div className="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="text-2xl font-bold text-yellow-600">{stats.severityCount.moderate}</div>
-                  <div className="text-sm text-yellow-600">Moderate Symptoms</div>
+                <div className="text-center p-4 bg-stone-800/40 backdrop-blur-sm rounded-xl border border-stone-700/50 shadow-lg">
+                  <div className="text-2xl font-bold text-orange-400">{stats.severityCount.moderate}</div>
+                  <div className="text-sm text-white/80">Moderate Symptoms</div>
                 </div>
                 
-                <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-                  <div className="text-2xl font-bold text-red-600">{stats.severityCount.severe}</div>
-                  <div className="text-sm text-red-600">Severe Symptoms</div>
+                <div className="text-center p-4 bg-stone-800/40 backdrop-blur-sm rounded-xl border border-stone-700/50 shadow-lg">
+                  <div className="text-2xl font-bold text-red-400">{stats.severityCount.severe}</div>
+                  <div className="text-sm text-white/80">Severe Symptoms</div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-4 h-4 text-white font-bold" />
                     Reporting Period
                   </h4>
                   <p className="text-sm text-muted-foreground">
@@ -276,20 +276,29 @@ const SymptomReportSummary: React.FC<SymptomReportSummaryProps> = ({
             <h3 className="text-lg font-semibold mb-4">Recent Entries Preview</h3>
             <div className="space-y-3 max-h-60 overflow-y-auto">
               {entries.slice(0, 5).map((entry, index) => (
-                <div key={entry.id} className="border rounded-lg p-3 bg-gray-50">
+                <div key={entry.id} className="bg-stone-800/30 border border-stone-700/30 rounded-xl p-4 transition-colors hover:bg-stone-800/40">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-3">
                         <Badge className={`px-2 py-1 text-xs ${getSeverityColor(entry.severity || 'mild')}`}>
                           {getSeverityIcon(entry.severity || 'mild')}
                           <span className="ml-1 capitalize">{entry.severity || 'mild'}</span>
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-white/60 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-white font-bold" />
                           {entry.timestamp.toLocaleDateString()} at {entry.timestamp.toLocaleTimeString()}
                         </span>
                       </div>
-                      <p className="text-sm font-medium">{entry.concern}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{entry.symptoms}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="font-medium text-sm text-white/80 min-w-fit">Concern:</span>
+                          <span className="text-sm text-white">{entry.concern}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-medium text-sm text-white/80 min-w-fit">Symptoms:</span>
+                          <span className="text-sm text-white line-clamp-2">{entry.symptoms}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -317,7 +326,7 @@ const SymptomReportSummary: React.FC<SymptomReportSummaryProps> = ({
                   <Download className="w-4 h-4 mr-2" />
                   Download PDF
                 </Button>
-                <Button onClick={handleShare} variant="outline" className="border-green-300 text-green-700 hover:bg-green-100">
+                <Button onClick={handleShare} variant="outline" className="border-green-300 text-green-700 hover:bg-green-500 hover:text-white rounded-xl shadow-lg bg-green-50">
                   <Share2 className="w-4 h-4 mr-2" />
                   Share PDF
                 </Button>
@@ -327,7 +336,7 @@ const SymptomReportSummary: React.FC<SymptomReportSummaryProps> = ({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} className="rounded-xl shadow-lg">
             Cancel
           </Button>
           {!generatedPDF && (

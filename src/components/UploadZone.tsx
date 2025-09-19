@@ -302,180 +302,118 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Main Header */}
-      <div className="flex justify-between items-start">
-        <div className="text-center flex-1 space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">What do you want to analyze?</h2>
-            <p className="text-muted-foreground">Upload medication info or enter drug name to get started</p>
-          </div>
-        </div>
-        {onHistoryView && (
-          <Button
-            onClick={onHistoryView}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 ml-4"
-          >
-            <History className="w-4 h-4" />
-            <span className="hidden sm:inline">History</span>
-          </Button>
-        )}
-      </div>
+    <div className="space-y-4">
+      {/* Lovable-style Input Container */}
+      <div className="relative">
+        <Input
+          placeholder="Ask MedInsight to analyze a medication..."
+          value={manualInput}
+          onChange={(e) => setManualInput(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleManualSubmit()}
+          className="w-full px-4 py-2.5 pr-20 text-sm bg-stone-800/90 border-6 border-stone-700/70 rounded-xl focus:border-orange-500/70 focus:ring-2 focus:ring-orange-500/30 text-white placeholder:text-white transition-all hover:bg-stone-800 hover:border-stone-700"
+        />
 
-      {/* Main Input Area - v0 Inspired */}
-      <div className="glass-card p-8 border-2 border-primary/20">
-        <div className="space-y-6">
-          <div className="relative">
-            <Input
-              placeholder="Enter medication name (e.g., Aspirin, Metformin, Lisinopril)..."
-              value={manualInput}
-              onChange={(e) => setManualInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleManualSubmit()}
-              className="text-lg py-4 px-6 pr-16 border-2 border-primary/30 rounded-xl focus:border-primary transition-all bg-background/50"
-            />
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-              {manualInput.trim() ? "Choose analysis below" : "Enter drug name"}
-            </div>
-          </div>
-
-          {/* Analysis Options */}
-          {manualInput.trim() && (
-            <div className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Choose your analysis type for <span className="font-medium text-foreground">{manualInput}</span></p>
-              </div>
-
-              {/* Video Duration Selector - Only show when Visualize is selected */}
-              <div
-                className={`transition-all duration-300 ${
-                  showVideoOptions ? 'opacity-100 max-h-96 mb-4' : 'opacity-0 max-h-0 overflow-hidden'
-                }`}
-              >
-                <div className="glass-panel p-4 rounded-xl">
-                  <VideoDurationSelector
-                    selectedDuration={videoDuration}
-                    onDurationChange={handleDurationChange}
-                  />
-                  <div className="flex gap-2 mt-3">
-                    <Button
-                      onClick={() => handleAnalysisSelect('visualize')}
-                      className="flex-1"
-                    >
-                      Generate Video
-                    </Button>
-                    <Button
-                      onClick={() => setShowVideoOptions(false)}
-                      variant="outline"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {analysisOptions.map((option) => {
-                  const IconComponent = option.icon;
-                  return (
-                    <Button
-                      key={option.id}
-                      onClick={() => {
-                        if (option.id === 'visualize') {
-                          if (!showVideoOptions) {
-                            // Show video options for selection
-                            setShowVideoOptions(true);
-                          }
-                        } else {
-                          setShowVideoOptions(false); // Hide video options when other tiles are selected
-                          handleAnalysisSelect(option.id);
-                        }
-                      }}
-                      variant="outline"
-                      className={`h-auto p-4 flex flex-col gap-2 hover:bg-primary/5 border border-primary/20 group transition-all ${
-                        option.id === 'visualize' && showVideoOptions ? 'ring-2 ring-primary/50 bg-primary/5' : ''
-                      }`}
-                    >
-                      <div className={`p-2 rounded-lg bg-gradient-to-br ${option.gradient} group-hover:scale-110 transition-transform`}>
-                        <IconComponent className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-sm">
-                          {option.title}
-                          {option.id === 'visualize' && showVideoOptions && (
-                            <span className="text-xs block text-primary font-normal">Configure below ↓</span>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
+        {/* Right Side Controls */}
+        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+          {onHistoryView && (
+            <Button
+              onClick={onHistoryView}
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 hover:bg-stone-700/50 rounded-lg"
+            >
+              <History className="w-4 h-4 text-gray-400" />
+            </Button>
           )}
-        </div>
-      </div>
-
-      {/* Alternative Options */}
-      <div className="space-y-3">
-        <div className="text-center text-sm text-muted-foreground">
-          Or choose
-        </div>
-
-        <div className="flex justify-center">
-          {/* Upload Files Option */}
-          <button
-            className={cn(
-              "w-full glass-card p-4 rounded-xl cursor-pointer hover:bg-primary/5 transition-colors group border border-transparent hover:border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed",
-              isDragOver && "bg-primary/10 border-primary/30"
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+          {/* Upload Button */}
+          <Button
             onClick={() => document.getElementById('file-upload')?.click()}
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 hover:bg-stone-700/50 rounded-lg"
             disabled={isProcessingDocument}
           >
-            <input
-              id="file-upload"
-              type="file"
-              accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  {isProcessingDocument ? (
-                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                  ) : (
-                    <FileText className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-                <div className="text-left">
-                  <div className="font-medium">
-                    {isProcessingDocument ? 'Processing...' : 'Upload File'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {isProcessingDocument ? processingMessage : 'Prescription PDF or medical report'}
-                  </div>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-          </button>
+            {isProcessingDocument ? (
+              <Loader2 className="w-4 h-4 text-orange-500 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 text-gray-400" />
+            )}
+          </Button>
+          <input
+            id="file-upload"
+            type="file"
+            accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.pdf"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
         </div>
       </div>
 
-      {/* Bottom Helper Text */}
-      <div className="text-center text-xs text-muted-foreground space-y-2">
-        <p>All uploads are secure and HIPAA compliant • No data is stored permanently</p>
-        {!manualInput.trim() && !isProcessingDocument && (
-          <p className="text-primary/60">💡 Enter a medication name above to see analysis options</p>
-        )}
-        {isProcessingDocument && (
-          <p className="text-primary/60">📄 Processing your document - this may take a few moments...</p>
+      {/* Compact Analysis Options - Only show when input has content */}
+      {manualInput.trim() && (
+        <div className="flex flex-wrap gap-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
+          {analysisOptions.map((option) => {
+            const IconComponent = option.icon;
+            return (
+              <Button
+                key={option.id}
+                onClick={() => {
+                  if (option.id === 'visualize') {
+                    if (!showVideoOptions) {
+                      setShowVideoOptions(true);
+                    }
+                  } else {
+                    setShowVideoOptions(false);
+                    handleAnalysisSelect(option.id);
+                  }
+                }}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1.5 h-8 px-3 bg-stone-800/50 border-stone-600/50 hover:border-orange-500/50 hover:bg-stone-700/50 text-white/70 hover:text-white transition-colors"
+              >
+                <IconComponent className="w-3.5 h-3.5" />
+                <span className="text-xs">{option.title}</span>
+              </Button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Video Options - Compact */}
+      {showVideoOptions && (
+        <div className="bg-stone-800/30 border border-stone-600/30 rounded-lg p-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
+          <VideoDurationSelector
+            selectedDuration={videoDuration}
+            onDurationChange={handleDurationChange}
+          />
+          <div className="flex gap-2 mt-2">
+            <Button
+              onClick={() => handleAnalysisSelect('visualize')}
+              size="sm"
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              Generate Video
+            </Button>
+            <Button
+              onClick={() => setShowVideoOptions(false)}
+              size="sm"
+              variant="outline"
+              className="border-stone-600/50 hover:bg-stone-700/50"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Minimal Bottom Text */}
+      <div className="text-center text-xs text-white">
+        {isProcessingDocument ? (
+          <span className="text-orange-400">Processing document...</span>
+        ) : manualInput.trim() ? (
+          <span>Choose analysis type above</span>
+        ) : (
+          <span>Enter medication name or upload prescription</span>
         )}
       </div>
 

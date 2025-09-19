@@ -75,6 +75,52 @@ class AIModelService:
             print(f"Claude Sonnet analysis error: {e}")
             return await self._generate_nova_premier_analysis(prompt)
 
+    async def _generate_claude_vision_analysis(self, prompt: str, image_data: str, mime_type: str) -> str:
+        """Generate analysis using Claude Sonnet with vision capabilities via Bedrock"""
+        try:
+            # Use Claude Sonnet 4 with vision for image analysis
+            body = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 4000,
+                "temperature": 0.1,  # Lower temperature for more consistent medical analysis
+                "system": "You are a medical AI assistant specialized in analyzing prescription images, medical documents, and pharmaceutical labels with high accuracy. Extract all visible medical information systematically.",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt
+                            },
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": mime_type,
+                                    "data": image_data
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            response = await asyncio.to_thread(
+                self.bedrock_client.invoke_model,
+                modelId=settings.BEDROCK_CLAUDE_MODEL_ID,  # Claude Sonnet supports vision
+                body=json.dumps(body),
+                contentType="application/json"
+            )
+
+            response_body = json.loads(response['body'].read())
+            return response_body['content'][0]['text']
+
+        except Exception as e:
+            print(f"Claude Vision analysis error: {e}")
+            # Fallback to text-only analysis if vision fails
+            fallback_prompt = f"{prompt}\n\nNote: Image analysis not available, please provide text-based analysis."
+            return await self._generate_claude_analysis(fallback_prompt)
+
     async def _generate_nova_premier_analysis(self, prompt: str) -> str:
         """Generate analysis using NOVA Premier via Bedrock"""
         try:

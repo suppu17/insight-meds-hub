@@ -139,11 +139,11 @@ python startup.py
 ### 2. Start Frontend
 ```bash
 npm run dev
-# Frontend available at http://localhost:8080
+# Frontend available at http://localhost:3000
 ```
 
 ### 3. Test Deep Research
-1. Navigate to http://localhost:8080
+1. Navigate to http://localhost:3000
 2. Enter medication: **"aspirin"** or **"metformin"**
 3. Click **"Deep Research"** button
 4. Watch real-time progress updates

@@ -1,9 +1,12 @@
 /**
  * Frontend Session Cache Service
  *
- * Integrates with backend Redis caching for session persistence,
+ * Integrates with backend Redis Cloud caching for session persistence,
  * user preferences, and analysis progress tracking.
+ * Enhanced with Redis Cloud monitoring and fallback capabilities.
  */
+
+import { redisCacheService } from './redisCacheService';
 
 interface SessionData {
   sessionId: string;
@@ -335,13 +338,41 @@ class SessionCacheService {
   // Health monitoring
   public async getCacheHealth(): Promise<any> {
     try {
-      const response = await fetch(`${this.API_BASE}/cache/health`);
-      if (response.ok) {
-        return await response.json();
+      // Use the enhanced Redis cache service for health monitoring
+      const health = await redisCacheService.getCacheHealth();
+      if (health) {
+        return {
+          cache_health: health,
+          redis_healthy: redisCacheService.isRedisHealthy(),
+          timestamp: new Date().toISOString()
+        };
       }
       return null;
     } catch (error) {
       console.warn('Failed to get cache health:', error);
+      return null;
+    }
+  }
+
+  // Enhanced Redis monitoring methods
+  public async getRedisStatistics(): Promise<any> {
+    try {
+      return await redisCacheService.getCacheStatistics();
+    } catch (error) {
+      console.warn('Failed to get Redis statistics:', error);
+      return null;
+    }
+  }
+
+  public isRedisHealthy(): boolean {
+    return redisCacheService.isRedisHealthy();
+  }
+
+  public async getCacheHitRate(): Promise<{ hitRate: number; totalRequests: number } | null> {
+    try {
+      return await redisCacheService.getCacheHitRate();
+    } catch (error) {
+      console.warn('Failed to get cache hit rate:', error);
       return null;
     }
   }

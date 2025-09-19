@@ -1,5 +1,6 @@
 // Enhanced document processing utility for comprehensive patient data extraction
 // This module provides functionality to extract comprehensive patient information from medical documents
+// Now enhanced with Claude Sonnet 4 Vision capabilities for direct image analysis
 
 interface ExtractedMedicalInfo {
   // Medication Information
@@ -80,9 +81,125 @@ interface ExtractedMedicalInfo {
     type: 'prescription' | 'medical_report' | 'lab_report' | 'discharge_summary' | 'other';
     date?: string;
     facility?: string;
+    source?: string;
+    confidence?: number;
   };
 
   rawText: string;
+}
+
+/**
+ * Process image using Claude Sonnet 4 Vision for direct medical analysis
+ * @param file - The image file to analyze
+ * @returns Promise<ExtractedMedicalInfo> - Extracted medical information
+ */
+async function processImageWithClaudeVision(file: File): Promise<ExtractedMedicalInfo> {
+  try {
+    console.log('👁️ Starting Claude Sonnet 4 Vision analysis for:', file.name);
+
+    // Prepare form data for Claude Vision API
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('include_image_preview', 'true');
+
+    // Call Claude Vision API
+    const response = await fetch('http://localhost:8000/api/v1/medical-ocr/analyze-image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Claude Vision API error: ${response.status}`);
+    }
+
+    const claudeResult = await response.json();
+    
+    if (!claudeResult.success || !claudeResult.extracted_data) {
+      throw new Error('Claude Vision analysis failed or returned invalid data');
+    }
+
+    console.log('✅ Claude Vision analysis successful:', claudeResult.summary);
+
+    // Convert Claude Vision result to ExtractedMedicalInfo format
+    const medicalInfo: ExtractedMedicalInfo = {
+      medications: claudeResult.extracted_data.medications?.map((med: any) => med.name) || [],
+      symptoms: claudeResult.extracted_data.symptoms || [],
+      clinicalNotes: claudeResult.extracted_data.medical_notes || [],
+      dosageRegimen: claudeResult.extracted_data.medications?.map((med: any) => {
+        const parts = [];
+        if (med.name) parts.push(med.name);
+        if (med.dosage) parts.push(med.dosage);
+        if (med.frequency) parts.push(med.frequency);
+        return parts.join(': ');
+      }).filter((dosage: string) => dosage.length > 0) || [],
+      rxIndications: claudeResult.extracted_data.medications?.map((med: any) => med.instructions).filter(Boolean) || [],
+      
+      // Patient information from Claude Vision
+      patientInfo: claudeResult.extracted_data.patient_info ? {
+        name: claudeResult.extracted_data.patient_info.name,
+        dob: claudeResult.extracted_data.patient_info.dob,
+      } : undefined,
+      
+      // Medical history with allergies
+      medicalHistory: {
+        pastMedicalHistory: [],
+        familyHistory: [],
+        socialHistory: [],
+        surgicalHistory: [],
+        allergies: claudeResult.extracted_data.allergies || [],
+        chronicConditions: []
+      },
+      
+      // Concomitant medications
+      concomitantMedications: claudeResult.extracted_data.medications?.map((med: any) => ({
+        medication: med.name || '',
+        dosage: med.dosage || med.strength || '',
+        frequency: med.frequency || '',
+        indication: med.instructions || '',
+        startDate: ''
+      })) || [],
+      
+      // Assessment with warnings
+      assessment: {
+        primaryDiagnosis: '',
+        secondaryDiagnoses: [],
+        treatmentPlan: claudeResult.extracted_data.warnings || [],
+        followUpInstructions: []
+      },
+      
+      // Prescriber information
+      prescriber: claudeResult.extracted_data.patient_info?.prescriber ? {
+        name: claudeResult.extracted_data.patient_info.prescriber,
+        npi: '',
+        specialty: '',
+        clinic: claudeResult.extracted_data.patient_info.pharmacy || ''
+      } : undefined,
+      
+      // Document metadata
+      documentInfo: {
+        type: 'prescription',
+        date: claudeResult.extracted_data.patient_info?.date || new Date().toISOString().split('T')[0],
+        source: 'claude_sonnet_4_vision',
+        confidence: claudeResult.confidence || 95
+      },
+      
+      // Raw text for reference
+      rawText: claudeResult.extracted_data.extracted_text || ''
+    };
+
+    console.log('📋 Converted Claude Vision result to medical info:', {
+      medications: medicalInfo.medications.length,
+      hasPatientInfo: !!medicalInfo.patientInfo,
+      hasAllergies: medicalInfo.medicalHistory?.allergies?.length || 0
+    });
+
+    return medicalInfo;
+
+  } catch (error) {
+    console.error('❌ Claude Vision processing failed:', error);
+    throw new Error(`Claude Vision analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -113,8 +230,9 @@ export async function processDocument(file: File): Promise<ExtractedMedicalInfo>
         Refills: 2
       `;
     } else if (file.type.startsWith('image/')) {
-      // Process image using OCR
-      extractedText = await processImageOCR(base64Data, file.type);
+      // Use Claude Sonnet 4 Vision for direct image analysis
+      console.log('👁️ Using Claude Sonnet 4 Vision for direct image analysis...');
+      return await processImageWithClaudeVision(file);
     } else if (file.type === 'application/pdf') {
       // Process PDF
       extractedText = await processPDF(base64Data);

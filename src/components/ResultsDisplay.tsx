@@ -1649,7 +1649,7 @@ const ResultsDisplay = ({ action, data, onBack, historyEntryId }: ResultsDisplay
                               </p>
                             </div>
                           </div>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" className="rounded-xl shadow-lg">
                             <ExternalLink className="w-4 h-4" />
                           </Button>
                         </div>
@@ -1700,7 +1700,7 @@ const ResultsDisplay = ({ action, data, onBack, historyEntryId }: ResultsDisplay
                         </div>
                         <p className="text-xs text-muted-foreground">{source.description}</p>
                       </div>
-                      <Button size="sm" variant="outline" asChild>
+                      <Button size="sm" variant="outline" asChild className="rounded-xl shadow-lg">
                         <a
                           href={source.url}
                           target="_blank"
@@ -1889,7 +1889,7 @@ const ResultsDisplay = ({ action, data, onBack, historyEntryId }: ResultsDisplay
                         </div>
                         <p className="text-xs text-muted-foreground">{source.description}</p>
                       </div>
-                      <Button size="sm" variant="outline" asChild>
+                      <Button size="sm" variant="outline" asChild className="rounded-xl shadow-lg">
                         <a
                           href={source.url}
                           target="_blank"

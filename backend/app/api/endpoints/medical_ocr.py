@@ -4,9 +4,13 @@ Medical OCR API Endpoints
 Provides advanced OCR → Claude medical text parsing for prescription images
 """
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Form, File, UploadFile
 from fastapi.responses import JSONResponse
-from typing import Dict, Any, Optional
+from typing import Dict, Any
+import logging
+from datetime import datetime
+import base64
+import asyncio
 import base64
 import asyncio
 import logging
@@ -108,18 +112,18 @@ async def extract_medical_info_from_image(
             detail=f"Failed to process medical document: {str(error)}"
         )
 
-@router.post("/medical-ocr/extract-text")
+@router.post("/extract-text")
 async def extract_medical_info_from_text(
     text: str = Form(..., description="OCR text from prescription or medical document")
 ) -> Dict[str, Any]:
     """
-    Extract structured medical information from raw OCR text using Claude parsing
+    Extract structured medical information from raw OCR text using Claude Sonnet 4 parsing
 
     Useful when OCR is done externally and you just need the medical parsing
     """
 
     try:
-        logger.info("🤖 Medical text parsing request")
+        logger.info("🤖 Medical text parsing request with Claude Sonnet 4")
 
         if not text or len(text.strip()) < 10:
             raise HTTPException(
@@ -127,8 +131,7 @@ async def extract_medical_info_from_text(
                 detail="Text must be at least 10 characters long"
             )
 
-        # Create a mock OCR result and parse with Claude
-        # We'll use the local parsing method directly
+        # Use Claude Sonnet 4 for enhanced medical text parsing
         medical_data = await medical_ocr_service._parse_with_claude(text)
 
         # Format response
@@ -136,7 +139,8 @@ async def extract_medical_info_from_text(
             "success": True,
             "timestamp": datetime.now().isoformat(),
             "input_text": text,
-            "method": "claude_text_parsing",
+            "method": "claude_sonnet_4_text_parsing",
+            "ai_model": "Claude Sonnet 4 (Amazon Bedrock)",
             "extracted_data": {
                 "medications": [
                     {
@@ -167,7 +171,7 @@ async def extract_medical_info_from_text(
             }
         }
 
-        logger.info(f"✅ Text parsing successful: {len(medical_data['medications'])} medications found")
+        logger.info(f"✅ Claude Sonnet 4 text parsing successful: {len(medical_data['medications'])} medications found")
         return response
 
     except HTTPException:
@@ -179,7 +183,111 @@ async def extract_medical_info_from_text(
             detail=f"Failed to parse medical text: {str(error)}"
         )
 
-@router.get("/medical-ocr/health")
+@router.post("/analyze-image")
+async def analyze_prescription_image(
+    image: UploadFile = File(..., description="Prescription or medical document image"),
+    include_image_preview: bool = Form(default=True, description="Include base64 image preview in response")
+) -> Dict[str, Any]:
+    """
+    Analyze prescription image using Claude Sonnet 4 Vision for direct medical information extraction
+    
+    This endpoint uses Claude's vision capabilities to directly analyze prescription images
+    and extract medical information without traditional OCR preprocessing.
+    """
+
+    try:
+        logger.info(f"📸 Prescription image analysis request: {image.filename}")
+
+        # Validate file type
+        if not image.content_type or not image.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=400,
+                detail="File must be an image (JPEG, PNG, WebP, etc.)"
+            )
+
+        # Read and encode image
+        image_bytes = await image.read()
+        if len(image_bytes) > 10 * 1024 * 1024:  # 10MB limit
+            raise HTTPException(
+                status_code=400,
+                detail="Image file too large. Maximum size is 10MB."
+            )
+
+        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+
+        # Analyze with Claude Sonnet 4 Vision
+        medical_entity = await medical_ocr_service.extract_medical_info(
+            image_data=image_base64,
+            mime_type=image.content_type
+        )
+
+        # Prepare response
+        response = {
+            "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "image_info": {
+                "filename": image.filename,
+                "size_bytes": len(image_bytes),
+                "mime_type": image.content_type,
+                "dimensions": "Available in image preview" if include_image_preview else "Not included"
+            },
+            "analysis_method": "claude_sonnet_4_vision",
+            "ai_model": "Claude Sonnet 4 Vision (Amazon Bedrock)",
+            "ocr_provider": medical_entity.ocr_provider,
+            "confidence": medical_entity.confidence,
+            "extracted_data": {
+                "medications": [
+                    {
+                        "name": med.name,
+                        "dosage": med.dosage,
+                        "frequency": med.frequency,
+                        "instructions": med.instructions,
+                        "strength": med.strength
+                    } for med in medical_entity.medications
+                ],
+                "symptoms": medical_entity.symptoms,
+                "allergies": medical_entity.allergies,
+                "medical_notes": medical_entity.medical_notes,
+                "warnings": medical_entity.warnings,
+                "patient_info": {
+                    "name": medical_entity.patient_info.name if medical_entity.patient_info else None,
+                    "dob": medical_entity.patient_info.dob if medical_entity.patient_info else None,
+                    "prescriber": medical_entity.patient_info.prescriber if medical_entity.patient_info else None,
+                    "pharmacy": medical_entity.patient_info.pharmacy if medical_entity.patient_info else None,
+                    "date": medical_entity.patient_info.date if medical_entity.patient_info else None
+                } if medical_entity.patient_info else None,
+                "extracted_text": medical_entity.raw_text
+            },
+            "summary": {
+                "medication_count": len(medical_entity.medications),
+                "primary_medication": medical_entity.medications[0].name if medical_entity.medications else None,
+                "has_patient_info": medical_entity.patient_info is not None,
+                "text_length": len(medical_entity.raw_text),
+                "analysis_confidence": medical_entity.confidence
+            }
+        }
+
+        # Include image preview if requested
+        if include_image_preview:
+            response["image_preview"] = {
+                "base64_data": f"data:{image.content_type};base64,{image_base64}",
+                "display_url": f"data:{image.content_type};base64,{image_base64}",
+                "thumbnail": f"data:{image.content_type};base64,{image_base64}"  # Could be resized in production
+            }
+
+        logger.info(f"✅ Claude Vision image analysis successful: {len(medical_entity.medications)} medications found")
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as error:
+        logger.error(f"❌ Prescription image analysis failed: {error}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to analyze prescription image: {str(error)}"
+        )
+
+@router.get("/health")
 async def get_medical_ocr_health() -> Dict[str, Any]:
     """
     Get health status of medical OCR service and available providers

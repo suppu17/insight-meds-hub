@@ -45,12 +45,17 @@ class RedisService:
                 "health_check_interval": 30
             }
 
+            # Add username if provided (for Redis Cloud)
+            if connection_config.get("username"):
+                pool_kwargs["username"] = connection_config["username"]
+
             # Add SSL configuration for Redis Cloud
             if connection_config.get("ssl"):
                 pool_kwargs.update({
                     "ssl": True,
                     "ssl_cert_reqs": ssl.CERT_REQUIRED,
-                    "ssl_check_hostname": True
+                    "ssl_check_hostname": True,
+                    "ssl_ca_certs": None  # Use system CA bundle
                 })
 
             self.connection_pool = redis.ConnectionPool(**pool_kwargs)
@@ -76,14 +81,23 @@ class RedisService:
         if settings.REDIS_API_KEY and settings.REDIS_API_KEY != "your-redis-cloud-api-key":
             logger.info("Redis Cloud API key detected, attempting Redis Cloud connection")
 
-            # For Redis Cloud, the API key often serves as the password
-            # The host and port would typically be provided by Redis Cloud dashboard
-            # For now, we'll use the API key as password with default cloud settings
+            # Use Redis Cloud configuration with SSL
+            redis_host = settings.REDIS_HOST
+            redis_port = settings.REDIS_PORT
+            
+            # Auto-detect Redis Cloud endpoints
+            if not redis_host or redis_host == "localhost":
+                redis_host = self._get_redis_cloud_endpoint()
+            
+            if not redis_port or redis_port == 6379:
+                redis_port = 6380  # Common Redis Cloud SSL port
+            
             return {
-                "host": settings.REDIS_CLOUD_HOST or self._get_redis_cloud_endpoint(),
-                "port": settings.REDIS_CLOUD_PORT or 6379,  # Default Redis port
+                "host": redis_host,
+                "port": redis_port,
                 "password": settings.REDIS_API_KEY,
-                "ssl": settings.REDIS_CLOUD_SSL
+                "ssl": True,  # Redis Cloud requires SSL
+                "username": "default"  # Redis Cloud default username
             }
 
         # Fallback to local Redis configuration
@@ -97,9 +111,21 @@ class RedisService:
 
     def _get_redis_cloud_endpoint(self) -> str:
         """Attempt to determine Redis Cloud endpoint. Fallback to localhost if not available."""
-        # In a production setup, this would query Redis Cloud API with the API key
-        # For now, return localhost as fallback (user should set REDIS_CLOUD_HOST in env)
-        return settings.REDIS_HOST
+        # Check if Redis Cloud host is explicitly set
+        if settings.REDIS_CLOUD_HOST:
+            return settings.REDIS_CLOUD_HOST
+        
+        # Try to extract from REDIS_URL if it contains Redis Cloud format
+        if settings.REDIS_URL and ("redislabs.com" in settings.REDIS_URL or "redis.cloud" in settings.REDIS_URL):
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(settings.REDIS_URL)
+                return parsed.hostname
+            except Exception:
+                pass
+        
+        # Fallback to configured host or localhost
+        return settings.REDIS_HOST or "localhost"
 
     def _test_connection(self, max_attempts: int = 3) -> None:
         """Test Redis connection with retry logic."""

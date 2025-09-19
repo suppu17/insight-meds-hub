@@ -421,13 +421,13 @@ const VideoPlayer = ({
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {onDownload && (
-            <Button variant="outline" size="sm" onClick={onDownload}>
+            <Button variant="outline" size="sm" onClick={onDownload} className="rounded-xl shadow-lg">
               <Download className="w-4 h-4 mr-2" />
               Download
             </Button>
           )}
           {onShare && (
-            <Button variant="outline" size="sm" onClick={onShare}>
+            <Button variant="outline" size="sm" onClick={onShare} className="rounded-xl shadow-lg">
               <Share2 className="w-4 h-4 mr-2" />
               Share
             </Button>

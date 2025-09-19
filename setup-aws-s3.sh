@@ -40,7 +40,7 @@ cat > /tmp/cors-config.json << 'EOF'
             "AllowedHeaders": ["*"],
             "AllowedMethods": ["PUT", "POST", "GET", "HEAD"],
             "AllowedOrigins": [
-                "http://localhost:8080",
+                "http://localhost:3000",
                 "http://localhost:8081",
                 "https://yourdomain.com"
             ],

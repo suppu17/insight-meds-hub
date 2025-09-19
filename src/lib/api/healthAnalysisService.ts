@@ -102,57 +102,107 @@ class MockHealthAnalysisService {
     const concernLower = request.concern.toLowerCase();
     const symptomsLower = request.symptoms.toLowerCase();
 
-    // Enhanced condition matching
-    const conditions = {
-      'gastritis': this.getGastritisAnalysis(),
-      'headache': this.getHeadacheAnalysis(),
-      'migraine': this.getMigrainAnalysis(),
-      'fever': this.getFeverAnalysis(),
-      'cold': this.getColdAnalysis(),
-      'flu': this.getFluAnalysis(),
-      'stress': this.getStressAnalysis(),
-      'anxiety': this.getAnxietyAnalysis(),
-      'insomnia': this.getInsomniaAnalysis(),
-      'nausea': this.getNauseaAnalysis(),
-    };
-
-    // Find the best matching condition
-    for (const [key, analysis] of Object.entries(conditions)) {
-      if (concernLower.includes(key) || symptomsLower.includes(key)) {
-        return analysis;
-      }
+    // Enhanced condition matching with symptom-specific analysis
+    if (concernLower.includes('gastritis') || symptomsLower.includes('gastritis')) {
+      return this.getGastritisAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('headache') || symptomsLower.includes('headache')) {
+      return this.getHeadacheAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('migraine') || symptomsLower.includes('migraine')) {
+      return this.getMigrainAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('fever') || symptomsLower.includes('fever')) {
+      return this.getFeverAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('cold') || symptomsLower.includes('cold')) {
+      return this.getColdAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('flu') || symptomsLower.includes('flu')) {
+      return this.getFluAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('stress') || symptomsLower.includes('stress')) {
+      return this.getStressAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('anxiety') || symptomsLower.includes('anxiety')) {
+      return this.getAnxietyAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('insomnia') || symptomsLower.includes('insomnia')) {
+      return this.getInsomniaAnalysis(request.symptoms);
+    }
+    if (concernLower.includes('nausea') || symptomsLower.includes('nausea')) {
+      return this.getNauseaAnalysis(request.symptoms);
     }
 
     // Check for symptom patterns
-    if (symptomsLower.includes('stomach') || symptomsLower.includes('nausea')) {
-      return this.getGastritisAnalysis();
+    if (symptomsLower.includes('stomach') || symptomsLower.includes('burp') || symptomsLower.includes('regurgitation')) {
+      return this.getGastritisAnalysis(request.symptoms);
     }
     if (symptomsLower.includes('head') || symptomsLower.includes('pain')) {
-      return this.getHeadacheAnalysis();
+      return this.getHeadacheAnalysis(request.symptoms);
     }
     if (symptomsLower.includes('tired') || symptomsLower.includes('fatigue')) {
-      return this.getFatigueAnalysis();
+      return this.getFatigueAnalysis(request.symptoms);
     }
 
     // Default general analysis
     return this.getGeneralAnalysis();
   }
 
-  private getGastritisAnalysis(): HealthAnalysisResult {
+  private getGastritisAnalysis(symptoms?: string): HealthAnalysisResult {
+    const symptomsLower = symptoms?.toLowerCase() || '';
+    
+    // Customize explanation based on specific symptoms
+    let explanation = 'Gastritis is inflammation of the stomach lining, commonly caused by H. pylori bacteria, NSAIDs, excessive alcohol consumption, stress, or spicy foods.';
+    
+    if (symptomsLower.includes('burp') || symptomsLower.includes('regurgitation')) {
+      explanation += ' Your symptoms of frequent burping and regurgitation suggest acid reflux accompanying the gastritis, where stomach acid irritates the esophagus.';
+    } else if (symptomsLower.includes('pain')) {
+      explanation += ' The abdominal pain you\'re experiencing is typical of gastritis, where the inflamed stomach lining becomes sensitive to acid and food.';
+    } else if (symptomsLower.includes('nausea')) {
+      explanation += ' The nausea you\'re experiencing is a common symptom of gastritis as the inflamed stomach lining struggles to process food normally.';
+    } else {
+      explanation += ' The symptoms you described align with acute gastritis patterns, where the stomach lining becomes irritated and inflamed.';
+    }
+
+    // Customize remedies based on symptoms
+    let remedies = [
+      'Ginger tea (2-3 cups daily) - reduces inflammation and nausea',
+      'Chamomile tea - soothes stomach lining and reduces inflammation',
+      'Probiotics (yogurt, kefir) - restore healthy gut bacteria',
+      'Avoid trigger foods (spicy, acidic, fatty, or processed foods)',
+      'Eat smaller, more frequent meals throughout the day'
+    ];
+
+    if (symptomsLower.includes('burp') || symptomsLower.includes('regurgitation')) {
+      remedies.push('Elevate head while sleeping to reduce acid reflux');
+      remedies.push('Avoid lying down for 2-3 hours after eating');
+      remedies.push('Chew food slowly and thoroughly');
+    }
+    
+    if (symptomsLower.includes('pain')) {
+      remedies.push('Apply warm compress to stomach area for comfort');
+      remedies.push('Avoid NSAIDs (ibuprofen, aspirin) which can worsen gastritis');
+    }
+
+    remedies.push('Licorice root tea (DGL form) - protects and heals stomach lining');
+    remedies.push('Aloe vera juice - anti-inflammatory properties for digestive tract');
+
+    // Customize recommendation based on symptoms
+    let recommendation = 'Try natural remedies and dietary modifications. Avoid trigger foods and stress. Monitor symptoms for 7-10 days.';
+    
+    if (symptomsLower.includes('frequent') || symptomsLower.includes('persistent')) {
+      recommendation += ' Since your symptoms appear frequent, consider keeping a food diary to identify specific triggers.';
+    }
+    
+    recommendation += ' If symptoms persist or worsen, consult a healthcare provider.';
+
     return {
       condition: 'Gastritis (Stomach Inflammation)',
-      explanation: 'Gastritis is inflammation of the stomach lining, commonly caused by H. pylori bacteria, NSAIDs, excessive alcohol consumption, stress, or spicy foods. The symptoms you described align with acute gastritis patterns, where the stomach lining becomes irritated and inflamed.',
-      naturalRemedies: [
-        'Ginger tea (2-3 cups daily) - reduces inflammation and nausea',
-        'Chamomile tea - soothes stomach lining and reduces inflammation',
-        'Probiotics (yogurt, kefir) - restore healthy gut bacteria',
-        'Avoid trigger foods (spicy, acidic, fatty, or processed foods)',
-        'Eat smaller, more frequent meals throughout the day',
-        'Licorice root tea (DGL form) - protects and heals stomach lining',
-        'Aloe vera juice - anti-inflammatory properties for digestive tract'
-      ],
+      explanation,
+      naturalRemedies: remedies,
       severity: 'moderate',
-      recommendation: 'Try natural remedies and dietary modifications. Avoid trigger foods and stress. Monitor symptoms for 7-10 days. If symptoms persist or worsen, consult a healthcare provider.',
+      recommendation,
       whenToSeeDoctor: [
         'Severe or persistent abdominal pain',
         'Blood in vomit or black, tarry stools',
@@ -165,7 +215,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getHeadacheAnalysis(): HealthAnalysisResult {
+  private getHeadacheAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Tension Headache',
       explanation: 'Tension headaches are the most common type of headache, often caused by stress, poor posture, dehydration, eye strain, or muscle tension in the neck and shoulders. They typically feel like a tight band around the head and can last from 30 minutes to several hours.',
@@ -193,7 +243,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getMigrainAnalysis(): HealthAnalysisResult {
+  private getMigrainAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Migraine Headache',
       explanation: 'Migraines are neurological headaches characterized by intense, throbbing pain, often on one side of the head. They can be triggered by stress, hormonal changes, certain foods, light, or environmental factors. Migraines often include additional symptoms like nausea and light sensitivity.',
@@ -221,7 +271,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getFeverAnalysis(): HealthAnalysisResult {
+  private getFeverAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Fever (Elevated Body Temperature)',
       explanation: 'Fever is your body\'s natural immune response to infection or illness. It helps fight off pathogens by creating an environment less favorable for their growth. Most fevers are beneficial and indicate your immune system is working properly.',
@@ -249,7 +299,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getColdAnalysis(): HealthAnalysisResult {
+  private getColdAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Common Cold (Upper Respiratory Infection)',
       explanation: 'The common cold is a viral infection of the upper respiratory tract. It\'s usually mild and self-limiting, lasting 7-10 days. Symptoms typically include runny nose, sneezing, mild cough, and sometimes low-grade fever.',
@@ -277,7 +327,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getFluAnalysis(): HealthAnalysisResult {
+  private getFluAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Influenza (Flu)',
       explanation: 'Influenza is a viral respiratory illness that\'s more severe than a common cold. It typically causes sudden onset of fever, body aches, fatigue, and respiratory symptoms. The flu can last 1-2 weeks and may lead to complications in vulnerable populations.',
@@ -305,7 +355,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getStressAnalysis(): HealthAnalysisResult {
+  private getStressAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Stress-Related Symptoms',
       explanation: 'Chronic stress can manifest in various physical and emotional symptoms including headaches, muscle tension, fatigue, digestive issues, and mood changes. Your body\'s stress response, while protective in short-term situations, can become harmful when persistently activated.',
@@ -333,7 +383,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getAnxietyAnalysis(): HealthAnalysisResult {
+  private getAnxietyAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Anxiety Symptoms',
       explanation: 'Anxiety can cause both mental and physical symptoms including racing thoughts, restlessness, muscle tension, rapid heartbeat, and digestive issues. While occasional anxiety is normal, persistent or severe anxiety may benefit from professional support.',
@@ -361,7 +411,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getInsomniaAnalysis(): HealthAnalysisResult {
+  private getInsomniaAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Sleep Difficulties (Insomnia)',
       explanation: 'Insomnia involves difficulty falling asleep, staying asleep, or waking too early. It can be caused by stress, anxiety, poor sleep habits, medical conditions, or lifestyle factors. Quality sleep is crucial for physical and mental health.',
@@ -389,7 +439,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getNauseaAnalysis(): HealthAnalysisResult {
+  private getNauseaAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Nausea and Digestive Discomfort',
       explanation: 'Nausea can be caused by various factors including dietary choices, stress, infections, motion sickness, or underlying digestive conditions. It\'s often your body\'s way of signaling that something needs attention in your digestive system.',
@@ -417,7 +467,7 @@ class MockHealthAnalysisService {
     };
   }
 
-  private getFatigueAnalysis(): HealthAnalysisResult {
+  private getFatigueAnalysis(symptoms?: string): HealthAnalysisResult {
     return {
       condition: 'Fatigue and Low Energy',
       explanation: 'Fatigue can result from poor sleep, stress, nutritional deficiencies, dehydration, or underlying health conditions. It\'s important to identify potential causes and address them through lifestyle modifications and natural approaches.',

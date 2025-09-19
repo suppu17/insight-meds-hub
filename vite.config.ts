@@ -7,7 +7,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 3000,
     // Enhanced CORS and isolation headers for FFmpeg WebAssembly support
     headers: {
       "Cross-Origin-Embedder-Policy": "credentialless",

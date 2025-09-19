@@ -14,7 +14,7 @@ const MedInsightLogo = () => {
           MedInsight
         </h1>
         <p className="text-xs text-muted-foreground font-medium">
-          AI-Powered Healthcare
+          AI-Powered Drug Education
         </p>
       </div>
     </div>

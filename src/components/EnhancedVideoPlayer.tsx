@@ -518,7 +518,7 @@ const EnhancedVideoPlayer = ({
             {showDownloadOptions && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={downloadState.isDownloading}>
+                  <Button variant="outline" size="sm" disabled={downloadState.isDownloading} className="rounded-xl shadow-lg">
                     {downloadState.isDownloading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />

@@ -23,12 +23,16 @@ import {
   Calendar,
   Trash2,
   Plus,
-  Pill
+  Pill,
+  Database,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import SymptomReportSummary from '@/components/SymptomReportSummary';
 import { createGladiaService } from '@/lib/api/gladiaService';
 import { createHealthAnalysisService, type HealthAnalysisResult } from '@/lib/api/healthAnalysisService';
 import { sessionCacheService, type UserPreferences } from '@/lib/services/sessionCacheService';
+import { useRedis } from '@/hooks/useRedis';
 
 // Symptom entry interface for tracking
 interface SymptomEntry {
@@ -59,9 +63,19 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
   const [showConcernDropdown, setShowConcernDropdown] = useState(false);
   const [filteredConcerns, setFilteredConcerns] = useState<string[]>([]);
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
-  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [showReportSummary, setShowReportSummary] = useState(false);
   const [loadedEntryId, setLoadedEntryId] = useState<string | null>(null);
+
+  const {
+    isConnected: isRedisConnected,
+    isLoading: isRedisLoading,
+    error: redisError,
+    saveSymptom,
+    getSymptoms,
+    deleteSymptom,
+    clearAllData,
+    getStorageStats,
+  } = useRedis({ userId: 'current_user', autoConnect: true });
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -109,18 +123,9 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
           console.log('📦 User preferences loaded from session:', sessionData.preferences);
         }
 
-        // Load any cached form data
-        const cachedEntry = localStorage.getItem('health_analyzer_draft');
-        if (cachedEntry) {
-          try {
-            const { concern: cachedConcern, symptoms: cachedSymptoms } = JSON.parse(cachedEntry);
-            if (cachedConcern) setConcern(cachedConcern);
-            if (cachedSymptoms) setSymptoms(cachedSymptoms);
-            console.log('📝 Draft form data restored from cache');
-          } catch (error) {
-            console.warn('Failed to parse cached draft:', error);
-          }
-        }
+        // Clear any cached symptoms to prevent auto-population
+        localStorage.removeItem('health_analyzer_draft');
+        console.log('🧹 Cleared cached draft data to prevent auto-population');
       } catch (error) {
         console.warn('Session initialization failed:', error);
       }
@@ -129,13 +134,13 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
     initializeSession();
   }, []);
 
-  // Auto-save draft data to localStorage for persistence
-  useEffect(() => {
-    if (concern.trim() || symptoms.trim()) {
-      const draftData = { concern, symptoms, timestamp: new Date().toISOString() };
-      localStorage.setItem('health_analyzer_draft', JSON.stringify(draftData));
-    }
-  }, [concern, symptoms]);
+  // Disabled auto-save to prevent unwanted auto-population
+  // useEffect(() => {
+  //   if (concern.trim() || symptoms.trim()) {
+  //     const draftData = { concern, symptoms, timestamp: new Date().toISOString() };
+  //     localStorage.setItem('health_analyzer_draft', JSON.stringify(draftData));
+  //   }
+  // }, [concern, symptoms]);
 
   // Filter concerns based on user input
   const handleConcernChange = (value: string) => {
@@ -365,38 +370,39 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
     };
   };
 
-  // Load saved entries from localStorage on component mount
+  // Load saved entries from Redis on component mount
   useEffect(() => {
-    const savedEntries = localStorage.getItem('symptom-entries');
-    if (savedEntries) {
+    const loadSymptomEntries = async () => {
       try {
-        const entries = JSON.parse(savedEntries).map((entry: any) => ({
-          ...entry,
-          timestamp: new Date(entry.timestamp)
-        }));
+        const entries = await getSymptoms();
         setSymptomEntries(entries);
       } catch (error) {
-        console.error('Failed to load saved entries:', error);
+        console.error('Failed to load saved entries from Redis:', error);
       }
-    }
-  }, []);
+    };
 
-  // Auto-save functionality - now only saves complete entries after analysis
-  const saveCompleteEntry = () => {
+    if (isRedisConnected) {
+      loadSymptomEntries();
+    }
+  }, [isRedisConnected, getSymptoms]);
+
+  // Auto-save functionality - now saves to Redis after analysis
+  const saveCompleteEntry = async () => {
     if (concern.trim() && symptoms.trim()) {
-      const entry: SymptomEntry = {
-        id: Date.now().toString(),
+      const success = await saveSymptom({
         concern: concern.trim(),
         symptoms: symptoms.trim(),
         timestamp: new Date(),
         severity,
         autoSaved: false // Mark as complete entry, not auto-saved
-      };
+      });
 
-      const updatedEntries = [entry, ...symptomEntries.slice(0, 49)]; // Keep last 50 entries
-      setSymptomEntries(updatedEntries);
-      localStorage.setItem('symptom-entries', JSON.stringify(updatedEntries));
-      setLastSaved(new Date());
+      if (success) {
+        // Refresh the entries list
+        const updatedEntries = await getSymptoms();
+        setSymptomEntries(updatedEntries);
+        setLastSaved(new Date());
+      }
     }
   };
 
@@ -405,30 +411,34 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
   //   // Auto-save logic removed to prevent redundant entries
   // }, [concern, symptoms, severity]);
 
-  // Manual save function - now requires both concern and symptoms
-  const manualSave = () => {
+  // Manual save function - now saves to Redis
+  const manualSave = async () => {
     if (concern.trim() && symptoms.trim()) {
-      const entry: SymptomEntry = {
-        id: Date.now().toString(),
+      const success = await saveSymptom({
         concern: concern.trim(),
         symptoms: symptoms.trim(),
         timestamp: new Date(),
         severity,
         autoSaved: false
-      };
+      });
 
-      const updatedEntries = [entry, ...symptomEntries];
-      setSymptomEntries(updatedEntries);
-      localStorage.setItem('symptom-entries', JSON.stringify(updatedEntries));
-      setLastSaved(new Date());
+      if (success) {
+        // Refresh the entries list
+        const updatedEntries = await getSymptoms();
+        setSymptomEntries(updatedEntries);
+        setLastSaved(new Date());
+      }
     }
   };
 
-  // Delete entry
-  const deleteEntry = (id: string) => {
-    const updatedEntries = symptomEntries.filter(entry => entry.id !== id);
-    setSymptomEntries(updatedEntries);
-    localStorage.setItem('symptom-entries', JSON.stringify(updatedEntries));
+  // Delete entry from Redis
+  const deleteEntry = async (id: string) => {
+    const success = await deleteSymptom(id);
+    if (success) {
+      // Refresh the entries list
+      const updatedEntries = await getSymptoms();
+      setSymptomEntries(updatedEntries);
+    }
   };
 
   // Load entry into form
@@ -461,11 +471,13 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
     setLoadedEntryId(null);
   };
 
-  // Clear all history entries
-  const clearAllHistory = () => {
-    setSymptomEntries([]);
-    localStorage.removeItem('symptom-entries');
-    setLastSaved(null);
+  // Clear all history entries from Redis
+  const clearAllHistory = async () => {
+    const success = await clearAllData();
+    if (success) {
+      setSymptomEntries([]);
+      setLastSaved(null);
+    }
   };
 
   // Health analysis using the service
@@ -535,7 +547,6 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
     try {
       // Start analysis tracking with session cache
       const analysisId = await sessionCacheService.startAnalysis(`health_analysis_${concern.slice(0, 20)}`);
-      setCurrentAnalysisId(analysisId);
 
       // Update analysis progress - step 1: Processing input
       await sessionCacheService.updateAnalysisProgress(analysisId, 'upload', 10);
@@ -604,12 +615,9 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
       console.error('Analysis failed:', error);
 
       // Update analysis progress with error state
-      if (currentAnalysisId) {
-        await sessionCacheService.updateAnalysisProgress(currentAnalysisId, 'upload', 0);
-      }
+      console.log('Analysis failed, error logged');
     } finally {
       setIsGenerating(false);
-      setCurrentAnalysisId(null);
     }
   };
 
@@ -658,10 +666,26 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Redis Connection Status */}
+          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-stone-800/30 border border-stone-700/30">
+            {isRedisConnected ? (
+              <>
+                <Database className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-green-400">Redis</span>
+              </>
+            ) : (
+              <>
+                <Database className="w-3 h-3 text-orange-400" />
+                <span className="text-xs text-orange-400">Local</span>
+              </>
+            )}
+          </div>
+          
           <Button
             onClick={() => setShowHistory(!showHistory)}
             variant="outline"
             size="sm"
+            className="rounded-xl shadow-lg"
           >
             <History className="w-4 h-4 mr-2" />
             History ({symptomEntries.length})
@@ -670,6 +694,7 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
             onClick={clearForm}
             variant="outline"
             size="sm"
+            className="rounded-xl shadow-lg"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Entry
@@ -679,22 +704,22 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
 
       {/* Save Status */}
       {lastSaved && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-green-50 p-2 rounded-lg border border-green-200">
-          <Save className="w-4 h-4 text-green-600" />
+        <div className="flex items-center gap-2 text-sm text-white/80 bg-white/5 backdrop-blur-xl border border-white/10 p-3 rounded-xl shadow-lg">
+          <Save className="w-4 h-4 text-orange-500" />
           <span>Last saved at {lastSaved.toLocaleTimeString()}</span>
         </div>
       )}
 
       {/* Loaded Entry Status */}
       {loadedEntryId && (
-        <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-2 rounded-lg border border-blue-200">
-          <CheckCircle className="w-4 h-4 text-blue-600" />
+        <div className="flex items-center gap-2 text-sm text-white/80 bg-orange-900/20 backdrop-blur-xl border border-orange-500/30 p-3 rounded-xl shadow-lg">
+          <CheckCircle className="w-4 h-4 text-orange-400" />
           <span>Entry loaded from history - you can now edit or analyze these symptoms</span>
           <Button
             onClick={clearForm}
             variant="ghost"
             size="sm"
-            className="ml-auto text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-6 px-2"
+            className="ml-auto text-orange-300 hover:text-white hover:bg-orange-500/20 h-6 px-2 rounded-lg"
           >
             Clear
           </Button>
@@ -707,23 +732,23 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold">Symptom History</h3>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">{symptomEntries.length} entries</Badge>
+              <Badge variant="default" className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500">{symptomEntries.length} entries</Badge>
               {symptomEntries.length > 0 && (
                 <>
                   <Button
                     onClick={() => setShowReportSummary(true)}
                     variant="default"
                     size="sm"
-                    className="bg-primary hover:bg-primary/90 text-white"
+                    className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg"
                   >
                     <FileText className="w-3 h-3 mr-1" />
-                    Summarize symptom report
+                    Summarize Symptom Report
                   </Button>
                   <Button
                     onClick={clearAllHistory}
                     variant="outline"
                     size="sm"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="text-red-600 hover:text-white hover:bg-red-500 rounded-xl shadow-lg border-red-300 bg-red-50"
                   >
                     <Trash2 className="w-3 h-3 mr-1" />
                     Clear All
@@ -742,10 +767,10 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
               {symptomEntries.map((entry) => (
                 <div 
                   key={entry.id} 
-                  className={`border rounded-lg p-4 transition-colors ${
+                  className={`border rounded-xl p-4 transition-colors ${
                     loadedEntryId === entry.id 
-                      ? 'bg-blue-50 border-blue-300 shadow-md' 
-                      : 'hover:bg-accent/5'
+                      ? 'bg-orange-900/20 border-orange-500/30 shadow-lg backdrop-blur-sm' 
+                      : 'bg-stone-800/30 border-stone-700/30 hover:bg-stone-800/40'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -754,36 +779,30 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
                         <Badge variant={entry.severity === 'severe' ? 'destructive' : entry.severity === 'moderate' ? 'default' : 'secondary'}>
                           {entry.severity}
                         </Badge>
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <span className="text-sm text-white/60 flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {entry.timestamp.toLocaleDateString()} at {entry.timestamp.toLocaleTimeString()}
                         </span>
                         {entry.autoSaved && (
-                          <Badge variant="outline" className="text-xs">Auto-saved</Badge>
+                          <Badge variant="outline" className="text-xs text-white/70 border-white/30">Auto-saved</Badge>
                         )}
                         {loadedEntryId === entry.id && (
-                          <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+                          <Badge variant="outline" className="text-xs bg-orange-500/20 text-orange-300 border-orange-500/40">
                             Currently Loaded
                           </Badge>
                         )}
                       </div>
                       <div className="space-y-2">
                         {entry.concern && (
-                          <div>
-                            <p className="font-medium text-sm text-gray-700">
-                              <strong>Concern:</strong>
-                            </p>
-                            <p className="text-sm ml-2 text-gray-900">{entry.concern}</p>
+                          <div className="flex items-start gap-2">
+                            <span className="font-medium text-sm text-white/80 min-w-fit">Concern:</span>
+                            <span className="text-sm text-white">{entry.concern}</span>
                           </div>
                         )}
                         {entry.symptoms && (
-                          <div>
-                            <p className="font-medium text-sm text-gray-700">
-                              <strong>Symptoms:</strong>
-                            </p>
-                            <div className="text-sm ml-2 text-gray-900 whitespace-pre-wrap leading-relaxed">
-                              {entry.symptoms}
-                            </div>
+                          <div className="flex items-start gap-2">
+                            <span className="font-medium text-sm text-white/80 min-w-fit">Symptoms:</span>
+                            <span className="text-sm text-white whitespace-pre-wrap leading-relaxed">{entry.symptoms}</span>
                           </div>
                         )}
                       </div>
@@ -793,7 +812,7 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
                         onClick={() => loadEntry(entry)}
                         variant={loadedEntryId === entry.id ? "default" : "outline"}
                         size="sm"
-                        className={loadedEntryId === entry.id ? "bg-blue-600 hover:bg-blue-700" : ""}
+                        className={loadedEntryId === entry.id ? "bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg" : "rounded-xl shadow-lg"}
                       >
                         {loadedEntryId === entry.id ? "Loaded" : "Load"}
                       </Button>
@@ -801,7 +820,7 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
                         onClick={() => deleteEntry(entry.id)}
                         variant="outline"
                         size="sm"
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-white hover:bg-red-500 rounded-xl shadow-lg border-red-300 bg-red-50"
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
@@ -842,14 +861,14 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
               className="w-full"
             />
             
-            {/* Autocomplete Dropdown */}
+            {/* Autocomplete Dropdown - Premium Style */}
             {showConcernDropdown && filteredConcerns.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-2 bg-stone-800/95 backdrop-blur-xl border border-stone-700/70 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
                 {filteredConcerns.map((concernOption, index) => (
                   <button
                     key={index}
                     onClick={() => selectConcern(concernOption)}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none text-sm border-b border-gray-100 last:border-b-0"
+                    className="w-full text-left px-4 py-3 hover:bg-stone-700/50 focus:bg-stone-700/50 focus:outline-none text-sm border-b border-stone-700/30 last:border-b-0 text-white/90 hover:text-white transition-all duration-200"
                   >
                     <span className="font-medium">{concernOption}</span>
                   </button>
@@ -887,18 +906,18 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
                     onClick={() => setSeverity(level)}
                     variant={severity === level ? "default" : "outline"}
                     size="sm"
-                    className={`capitalize ${
+                    className={`capitalize rounded-xl shadow-lg transition-all duration-300 ${
                       severity === level
-                        ? level === 'severe' 
-                          ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
-                          : level === 'moderate' 
-                          ? 'bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600'
-                          : 'bg-green-500 text-white border-green-500 hover:bg-green-600'
-                        : level === 'severe' 
-                          ? 'text-red-600 border-red-300 bg-red-50 hover:bg-red-100' 
-                          : level === 'moderate' 
-                          ? 'text-yellow-700 border-yellow-300 bg-yellow-50 hover:bg-yellow-100'
-                          : 'text-green-600 border-green-300 bg-green-50 hover:bg-green-100'
+                        ? level === 'severe'
+                          ? 'bg-red-500 text-white border-red-500 hover:bg-red-600'
+                          : level === 'moderate'
+                          ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
+                          : 'bg-green-400 text-white border-green-400 hover:bg-green-500'
+                        : level === 'severe'
+                          ? 'bg-red-50 text-red-700 border-red-300 hover:bg-red-500 hover:text-white'
+                          : level === 'moderate'
+                          ? 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-500 hover:text-white'
+                          : 'bg-green-50 text-green-700 border-green-300 hover:bg-green-400 hover:text-white'
                     }`}
                   >
                     {level}
@@ -913,6 +932,7 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
                 variant={isRecording ? "destructive" : "outline"}
                 size="sm"
                 disabled={isGenerating || isTranscribing}
+                className="rounded-xl shadow-lg"
               >
                 {isRecording ? (
                   <>
@@ -937,6 +957,7 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
                 variant="outline"
                 size="sm"
                 disabled={!concern.trim() || !symptoms.trim()}
+                className="rounded-xl shadow-lg"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Entry
@@ -969,7 +990,7 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
         <Button
           onClick={handleGenerate}
           disabled={!concern.trim() || !symptoms.trim() || isGenerating}
-          className="bg-gradient-primary hover:bg-gradient-primary/90 text-white px-8 py-3 text-lg font-semibold"
+          className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 text-lg font-semibold rounded-xl shadow-lg"
         >
           {isGenerating ? (
             <>
@@ -1015,7 +1036,7 @@ const HealthAnalyzer: React.FC<HealthAnalyzerProps> = ({ onAnalysisComplete }) =
                   Medications Used, If Any
                 </h4>
                 <div className="space-y-4">
-                  {analysisResult.detectedMedications.map((med, index: number) => (
+                  {analysisResult.detectedMedications.map((med, index) => (
                     <div key={index} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                       <div className="mb-3">
                         <h5 className="font-semibold text-blue-800 text-lg">{med.info.name}</h5>

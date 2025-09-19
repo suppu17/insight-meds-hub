@@ -26,16 +26,17 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str = "sqlite:///./app.db"
 
-    # Redis Cloud Configuration with API Key
-    REDIS_URL: str = "redis://localhost:6379"  # Default fallback for local development
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_PASSWORD: Optional[str] = None
-    REDIS_API_KEY: Optional[str] = "A1yyflastlw544a0y0oo6nfyb6idxw1n3hr5co0cfqvpga0n8hs"  # Redis Cloud API Key
+    # Redis Configuration - Cloud-first with local fallback
+    REDIS_API_KEY: Optional[str] = None  # Redis Cloud API Key (password)
+    REDIS_URL: str = "redis://localhost:6379"  # Fallback for local development
+    REDIS_HOST: str = "localhost"  # Will be overridden by Redis Cloud config
+    REDIS_PORT: int = 6379  # Will be overridden by Redis Cloud config
+    REDIS_PASSWORD: Optional[str] = None  # Will use REDIS_API_KEY for cloud
+    REDIS_SSL: bool = False  # Will be True for Redis Cloud
 
     # Redis Cloud Configuration (auto-detected if API key provided)
-    REDIS_CLOUD_HOST: Optional[str] = None  # Will be auto-configured from Redis Cloud
-    REDIS_CLOUD_PORT: Optional[int] = None  # Will be auto-configured from Redis Cloud
+    REDIS_CLOUD_HOST: Optional[str] = None  # Set this to your Redis Cloud endpoint
+    REDIS_CLOUD_PORT: Optional[int] = None  # Set this to your Redis Cloud port
     REDIS_CLOUD_SSL: bool = True  # Redis Cloud requires SSL
 
     REDIS_DB: int = 0
