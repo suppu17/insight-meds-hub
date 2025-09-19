@@ -7,6 +7,18 @@ export interface HealthAnalysisResult {
   severity: 'mild' | 'moderate' | 'critical';
   recommendation: string;
   whenToSeeDoctor: string[];
+  detectedMedications?: Array<{
+    medication: string;
+    info: {
+      name: string;
+      genericName?: string;
+      class: string;
+      uses: string[];
+      conditions: string[];
+      commonSideEffects: string[];
+      description: string;
+    };
+  }>;
 }
 
 interface HealthAnalysisRequest {
@@ -15,6 +27,7 @@ interface HealthAnalysisRequest {
   patientAge?: number;
   patientGender?: string;
   medicalHistory?: string[];
+  currentMedications?: string[];
 }
 
 class HealthAnalysisService {
@@ -28,10 +41,13 @@ class HealthAnalysisService {
 
   async analyzeHealthConcern(request: HealthAnalysisRequest): Promise<HealthAnalysisResult> {
     try {
+      // Add timeout to prevent long waits - fall back to mock after 10 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(`${this.baseUrl}/analyze-health`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -40,18 +56,27 @@ class HealthAnalysisService {
           patient_age: request.patientAge,
           patient_gender: request.patientGender,
           medical_history: request.medicalHistory,
+          current_medications: request.currentMedications || []
         }),
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`Health analysis API error: ${response.status}`);
+        console.warn(`Backend health analysis failed (${response.status}), falling back to mock service`);
+        // Fall back to mock service
+        const mockService = new MockHealthAnalysisService();
+        return await mockService.analyzeHealthConcern(request);
       }
 
       const result = await response.json();
       return this.formatAnalysisResult(result);
     } catch (error) {
-      console.error('Health analysis failed:', error);
-      throw new Error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.warn('Health analysis backend error, falling back to mock service:', error);
+      // Fall back to mock service
+      const mockService = new MockHealthAnalysisService();
+      return await mockService.analyzeHealthConcern(request);
     }
   }
 
@@ -63,6 +88,7 @@ class HealthAnalysisService {
       severity: apiResult.severity || 'mild',
       recommendation: apiResult.recommendation || '',
       whenToSeeDoctor: apiResult.when_to_see_doctor || [],
+      detectedMedications: apiResult.detected_medications || undefined,
     };
   }
 }
@@ -450,10 +476,9 @@ class MockHealthAnalysisService {
 
 // Factory function
 export const createHealthAnalysisService = (baseUrl?: string, apiKey?: string) => {
-  if (baseUrl && apiKey && process.env.NODE_ENV === 'production') {
-    return new HealthAnalysisService(baseUrl, apiKey);
-  } else {
-    console.log('Using mock health analysis service for development/testing');
-    return new MockHealthAnalysisService();
-  }
+  // Use real backend service if available
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
+  // Always try to use real service first
+  return new HealthAnalysisService(`${backendUrl}/api/v1`, 'dummy-key');
 };

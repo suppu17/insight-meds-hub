@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Upload, Camera, FileText, Pill, ArrowRight, Eye, BarChart3, Search, Volume2, Loader2, Image, Video, Microscope } from "lucide-react";
+import { Upload, FileText, Pill, ArrowRight, Eye, BarChart3, Search, Volume2, Loader2, Image, Video, Microscope, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -32,10 +32,11 @@ interface UploadZoneProps {
   onManualEntry: (medication: string) => void;
   onAnalyze?: (medication: string, action: string, videoDuration?: VideoDuration, videoStrategy?: GenerationStrategy) => void;
   onDocumentAnalysis?: (extractedInfo: ExtractedMedicalInfo, primaryMedication: string) => void;
+  onHistoryView?: () => void;
   currentMedication?: string; // Add this to show persistent medication
 }
 
-const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis, currentMedication }: UploadZoneProps) => {
+const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis, onHistoryView, currentMedication }: UploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [manualInput, setManualInput] = useState(currentMedication || "");
   const [videoDuration, setVideoDuration] = useState<VideoDuration>('8s');
@@ -109,10 +110,15 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
       setIsProcessingDocument(true);
       setProcessingMessage('Processing document...');
 
-      // Validate file type
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-      if (!validTypes.includes(file.type)) {
-        throw new Error('Please upload an image (JPG, PNG) or PDF file.');
+      // Clear any previous data to prevent caching issues
+      console.log('Starting fresh document upload for file:', file.name);
+
+      // Validate file type - be more flexible with image formats
+      const isImage = file.type.startsWith('image/');
+      const isPDF = file.type === 'application/pdf';
+      
+      if (!isImage && !isPDF) {
+        throw new Error('Please upload an image (JPG, PNG, GIF, WEBP, etc.) or PDF file.');
       }
 
       // Validate file size (max 10MB)
@@ -121,10 +127,14 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
         throw new Error('File size must be less than 10MB.');
       }
 
-      setProcessingMessage('Extracting text from document...');
+      setProcessingMessage('Extracting text from document with OCR...');
 
-      // Process the document
+      // Process the document with timestamp to ensure fresh processing
+      console.log('Processing document at:', new Date().toISOString());
       const extractedInfo = await processDocument(file);
+
+      console.log('Extracted info:', extractedInfo);
+      console.log('Found medications:', extractedInfo.medications);
 
       setProcessingMessage('Analyzing medical information...');
 
@@ -140,6 +150,8 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
 
       // Get the primary medication for analysis
       const primaryMedication = getPrimaryMedication(extractedInfo);
+
+      console.log('Primary medication identified:', primaryMedication);
 
       if (!primaryMedication) {
         showNotification(
@@ -158,6 +170,9 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
         `Found medications: ${medicationList}. Starting analysis for ${primaryMedication}.`,
       );
 
+      // Clear any previous input to ensure fresh data
+      setManualInput('');
+
       // Trigger analysis with the primary medication
       onManualEntry(primaryMedication);
 
@@ -169,6 +184,7 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
       // Auto-start overview analysis after a short delay
       setTimeout(() => {
         if (onAnalyze) {
+          console.log('Starting analysis for:', primaryMedication);
           onAnalyze(primaryMedication, 'overview');
         }
         closeNotification();
@@ -288,14 +304,24 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
   return (
     <div className="space-y-6">
       {/* Main Header */}
-      <div className="text-center space-y-4">
-        <div className="glass-panel rounded-full p-4 w-fit mx-auto">
-          <Pill className="w-8 h-8 text-primary" />
+      <div className="flex justify-between items-start">
+        <div className="text-center flex-1 space-y-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">What do you want to analyze?</h2>
+            <p className="text-muted-foreground">Upload medication info or enter drug name to get started</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold mb-2">What do you want to analyze?</h2>
-          <p className="text-muted-foreground">Upload medication info or enter drug name to get started</p>
-        </div>
+        {onHistoryView && (
+          <Button
+            onClick={onHistoryView}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 ml-4"
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">History</span>
+          </Button>
+        )}
       </div>
 
       {/* Main Input Area - v0 Inspired */}
@@ -395,45 +421,10 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
       {/* Alternative Options */}
       <div className="space-y-3">
         <div className="text-center text-sm text-muted-foreground">
-          Or choose from these options
+          Or choose
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Upload Image Option */}
-          <button
-            className="w-full glass-card p-4 rounded-xl cursor-pointer hover:bg-primary/5 transition-colors group border border-transparent hover:border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => document.getElementById('image-upload')?.click()}
-            disabled={isProcessingDocument}
-          >
-            <input
-              id="image-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  {isProcessingDocument ? (
-                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                  ) : (
-                    <Camera className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-                <div className="text-left">
-                  <div className="font-medium">
-                    {isProcessingDocument ? 'Processing...' : 'Upload Photo'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {isProcessingDocument ? processingMessage : 'Medication image or prescription'}
-                  </div>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-          </button>
-
+        <div className="flex justify-center">
           {/* Upload Files Option */}
           <button
             className={cn(
@@ -449,7 +440,7 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
             <input
               id="file-upload"
               type="file"
-              accept="image/*,.pdf"
+              accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.pdf"
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -464,7 +455,7 @@ const UploadZone = ({ onFileUpload, onManualEntry, onAnalyze, onDocumentAnalysis
                 </div>
                 <div className="text-left">
                   <div className="font-medium">
-                    {isProcessingDocument ? 'Processing...' : 'Upload Document'}
+                    {isProcessingDocument ? 'Processing...' : 'Upload File'}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {isProcessingDocument ? processingMessage : 'Prescription PDF or medical report'}

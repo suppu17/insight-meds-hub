@@ -1,3 +1,5 @@
+import { sessionCacheService } from '@/lib/services/sessionCacheService';
+
 const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 export interface DrugAnalysisRequest {
@@ -42,19 +44,56 @@ export class DrugAnalysisAPI {
 
   async startDrugAnalysis(request: DrugAnalysisRequest): Promise<{analysis_id: string, status: string, message: string}> {
     try {
+      // Generate cache key for this analysis request
+      const cacheKey = `${request.drug_name.toLowerCase()}_${request.analysis_type}`;
+
+      // Check for cached analysis result first
+      console.log('🔍 Checking cache for analysis:', cacheKey);
+      const cachedResult = await sessionCacheService.getCachedAnalysisResult(cacheKey);
+
+      if (cachedResult) {
+        console.log('📦 Using cached analysis result for:', request.drug_name);
+
+        // Return cached result in the expected format
+        return {
+          analysis_id: cachedResult.id,
+          status: 'completed',
+          message: 'Analysis retrieved from cache',
+          results: cachedResult.results,
+          executive_summary: cachedResult.executiveSummary,
+          cached: true
+        } as any;
+      }
+
+      // Start analysis tracking in session cache
+      const analysisId = await sessionCacheService.startAnalysis(request.drug_name);
+
+      console.log('🚀 Starting new drug analysis:', request.drug_name);
+
+      // Update progress - starting analysis
+      await sessionCacheService.updateAnalysisProgress(analysisId, 'upload', 5);
+
       const response = await fetch(`${this.baseUrl}/drug/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify({
+          ...request,
+          session_analysis_id: analysisId  // Include session tracking ID
+        }),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+
+      // Update progress - analysis started
+      await sessionCacheService.updateAnalysisProgress(analysisId, 'analysis', 10);
+
+      return result;
     } catch (error) {
       console.error('Failed to start drug analysis:', error);
       throw error;
@@ -69,10 +108,56 @@ export class DrugAnalysisAPI {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+
+      // Update session progress tracking
+      if (result.progress_percentage) {
+        await sessionCacheService.updateAnalysisProgress(
+          analysisId,
+          this.mapStatusToStep(result.status),
+          result.progress_percentage,
+          result.results
+        );
+      }
+
+      // Cache completed analysis results
+      if (result.status === 'completed' && result.results) {
+        try {
+          console.log('💾 Caching completed analysis result');
+
+          // Extract drug name from analysis ID or use a fallback
+          const drugName = result.drug_name || analysisId.split('_')[0] || 'unknown';
+          const analysisType = result.analysis_type || 'overview';
+          const cacheKey = `${drugName.toLowerCase()}_${analysisType}`;
+
+          await sessionCacheService.cacheAnalysisResult(
+            cacheKey,
+            result.results,
+            result.executive_summary,
+            result.clinical_recommendations
+          );
+
+          console.log('✅ Analysis result cached successfully');
+        } catch (cacheError) {
+          console.warn('Failed to cache analysis result:', cacheError);
+        }
+      }
+
+      return result;
     } catch (error) {
       console.error('Failed to get analysis status:', error);
       throw error;
+    }
+  }
+
+  // Helper method to map backend status to session cache steps
+  private mapStatusToStep(status: string): 'upload' | 'ocr' | 'analysis' | 'results' | 'complete' {
+    switch (status) {
+      case 'queued': return 'upload';
+      case 'in_progress': return 'analysis';
+      case 'completed': return 'complete';
+      case 'failed': return 'upload'; // Reset on failure
+      default: return 'analysis';
     }
   }
 
@@ -83,13 +168,39 @@ export class DrugAnalysisAPI {
 
   async getBasicDrugInfo(drugName: string): Promise<any> {
     try {
+      // Check cache for basic drug info
+      const cacheKey = `${drugName.toLowerCase()}_basic_info`;
+      const cachedInfo = await sessionCacheService.getCachedAnalysisResult(cacheKey);
+
+      if (cachedInfo) {
+        console.log('📦 Using cached basic drug info for:', drugName);
+        return cachedInfo.results;
+      }
+
+      console.log('🔍 Fetching basic drug info for:', drugName);
+
       const response = await fetch(`${this.baseUrl}/drug/info/${encodeURIComponent(drugName)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+
+      // Cache basic drug info for future use (longer TTL since it's mostly static)
+      try {
+        await sessionCacheService.cacheAnalysisResult(
+          cacheKey,
+          result,
+          `Basic information for ${drugName}`,
+          null
+        );
+        console.log('💾 Cached basic drug info for:', drugName);
+      } catch (cacheError) {
+        console.warn('Failed to cache basic drug info:', cacheError);
+      }
+
+      return result;
     } catch (error) {
       console.error('Failed to get drug info:', error);
       throw error;

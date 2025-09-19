@@ -5,7 +5,7 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 
-from app.api.endpoints import drug_analysis, market_research
+from app.api.endpoints import drug_analysis, market_research, health_analysis, redis_monitoring, medical_ocr, cache
 from app.core.config import settings
 
 load_dotenv()
@@ -26,6 +26,10 @@ app.add_middleware(
 
 app.include_router(drug_analysis.router, prefix="/api/v1", tags=["drug-analysis"])
 app.include_router(market_research.router, prefix="/api/v1", tags=["market-research"])
+app.include_router(health_analysis.router, prefix="/api/v1", tags=["health-analysis"])
+app.include_router(redis_monitoring.router, prefix="/api/v1", tags=["redis-monitoring"])
+app.include_router(medical_ocr.router, prefix="/api/v1", tags=["medical-ocr"])
+app.include_router(cache.router, prefix="/api/v1/cache", tags=["cache"])
 
 @app.get("/")
 async def root():

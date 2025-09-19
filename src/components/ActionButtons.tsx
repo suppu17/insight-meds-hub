@@ -1,5 +1,6 @@
 import { Eye, BarChart3, Search, Volume2, Microscope, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { sessionCacheService } from "@/lib/services/sessionCacheService";
 
 interface ActionButtonsProps {
   onAction: (action: string) => void;
@@ -58,6 +59,15 @@ const ActionButtons = ({ onAction, isLoading = false }: ActionButtonsProps) => {
     }
   ];
 
+  // Handle action with session tracking
+  const handleActionClick = (actionId: string) => {
+    // Extend session on user activity
+    sessionCacheService.extendSession().catch(console.warn);
+
+    // Call the original action handler
+    onAction(actionId);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {actions.map((action) => {
@@ -65,7 +75,7 @@ const ActionButtons = ({ onAction, isLoading = false }: ActionButtonsProps) => {
         return (
           <Button
             key={action.id}
-            onClick={() => onAction(action.id)}
+            onClick={() => handleActionClick(action.id)}
             disabled={isLoading}
             variant="glass"
             className="group h-auto p-6 justify-start text-left"

@@ -8,69 +8,70 @@
 
 @layer base {
   :root {
-    /* Medical-grade color palette */
-    --background: 210 100% 97%;
-    --foreground: 210 15% 20%;
+    /* Dark glassmorphism theme - matching Dribbble reference */
+    --background: 220 40% 8%;
+    --foreground: 220 15% 90%;
 
-    /* Glass morphism base colors */
-    --glass-bg: 210 50% 96%;
-    --glass-border: 210 20% 85%;
-    --glass-shadow: 210 15% 60%;
+    /* Glass morphism base colors - Dark theme */
+    --glass-bg: 220 30% 15%;
+    --glass-border: 240 40% 25%;
+    --glass-shadow: 220 50% 5%;
 
-    /* Primary medical blue */
-    --primary: 210 85% 58%;
+    /* Primary blue-purple gradient */
+    --primary: 240 85% 65%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 210 90% 65%;
+    --primary-glow: 245 90% 75%;
 
-    /* Secondary accent */
-    --secondary: 195 100% 96%;
-    --secondary-foreground: 210 15% 30%;
+    /* Secondary dark glass */
+    --secondary: 220 25% 15%;
+    --secondary-foreground: 220 15% 85%;
 
-    /* Medical cyan accent */
-    --accent: 185 85% 55%;
+    /* Accent purple-blue */
+    --accent: 260 85% 70%;
     --accent-foreground: 0 0% 100%;
-    --accent-glow: 185 90% 65%;
+    --accent-glow: 265 90% 80%;
 
-    /* Muted medical grays */
-    --muted: 210 15% 92%;
-    --muted-foreground: 210 10% 45%;
+    /* Muted dark grays */
+    --muted: 220 20% 20%;
+    --muted-foreground: 220 15% 65%;
 
-    /* Success medical green */
-    --success: 140 70% 50%;
+    /* Success green */
+    --success: 140 70% 55%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning medical orange */
-    --warning: 25 95% 60%;
+    /* Warning orange */
+    --warning: 25 95% 65%;
     --warning-foreground: 0 0% 100%;
 
-    /* Destructive medical red */
-    --destructive: 0 75% 60%;
+    /* Destructive red */
+    --destructive: 0 75% 65%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Glass morphism specific */
-    --card: 210 40% 98%;
-    --card-foreground: 210 15% 25%;
-    --popover: 210 40% 98%;
-    --popover-foreground: 210 15% 25%;
+    /* Glass morphism cards - dark theme */
+    --card: 220 30% 12%;
+    --card-foreground: 220 15% 85%;
+    --popover: 220 30% 12%;
+    --popover-foreground: 220 15% 85%;
 
-    --border: 210 25% 88%;
-    --input: 210 25% 92%;
-    --ring: 210 85% 58%;
+    --border: 240 30% 25%;
+    --input: 220 25% 18%;
+    --ring: 240 85% 65%;
 
-    --radius: 1rem;
+    --radius: 1.2rem;
 
-    /* Medical gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-glow)) 100%);
-    --gradient-glass: linear-gradient(135deg, hsla(210, 50%, 96%, 0.8) 0%, hsla(210, 40%, 98%, 0.6) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(210, 95%, 88%) 0%, hsl(185, 85%, 90%) 50%, hsl(210, 90%, 92%) 100%);
+    /* Dark glassmorphism gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(240, 85%, 65%) 0%, hsl(245, 90%, 75%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(260, 85%, 70%) 0%, hsl(265, 90%, 80%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsla(220, 30%, 15%, 0.7) 0%, hsla(240, 25%, 20%, 0.5) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(220, 60%, 10%) 0%, hsl(240, 50%, 15%) 30%, hsl(260, 40%, 20%) 60%, hsl(280, 30%, 25%) 100%);
 
-    /* Glass morphism effects */
-    --glass-blur: blur(12px);
-    --glass-shadow-sm: 0 4px 12px hsla(210, 25%, 40%, 0.08);
-    --glass-shadow-md: 0 8px 24px hsla(210, 25%, 40%, 0.12);
-    --glass-shadow-lg: 0 16px 40px hsla(210, 25%, 40%, 0.16);
-    --glass-border-gradient: linear-gradient(135deg, hsla(210, 60%, 90%, 0.8), hsla(210, 30%, 85%, 0.4));
+    /* Enhanced glass morphism effects */
+    --glass-blur: blur(16px);
+    --glass-shadow-sm: 0 4px 16px hsla(220, 60%, 5%, 0.4);
+    --glass-shadow-md: 0 8px 32px hsla(220, 60%, 3%, 0.5);
+    --glass-shadow-lg: 0 16px 48px hsla(220, 60%, 2%, 0.6);
+    --glass-border-gradient: linear-gradient(135deg, hsla(240, 80%, 70%, 0.3), hsla(260, 60%, 60%, 0.2));
+    --glass-highlight: linear-gradient(135deg, hsla(240, 100%, 90%, 0.1) 0%, transparent 50%);
 
     /* Medical transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -158,28 +159,49 @@
     min-height: 100vh;
   }
 
-  /* Glass morphism utility classes */
+  /* Enhanced Glass morphism utility classes */
   .glass-panel {
     background: var(--gradient-glass);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid hsla(210, 30%, 85%, 0.3);
+    border: 1px solid transparent;
+    background-image: var(--glass-border-gradient);
+    background-clip: padding-box;
     box-shadow: var(--glass-shadow-md);
     transition: var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: var(--glass-highlight);
+    pointer-events: none;
   }
 
   .glass-card {
-    @apply glass-panel rounded-2xl;
+    @apply glass-panel rounded-3xl;
   }
 
   .glass-button {
-    @apply glass-panel rounded-xl;
+    @apply glass-panel rounded-2xl;
     transition: var(--transition-spring);
+    cursor: pointer;
   }
 
   .glass-button:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--glass-shadow-lg);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: var(--glass-shadow-lg), 0 0 30px hsla(240, 80%, 70%, 0.2);
+    background: linear-gradient(135deg, hsla(220, 40%, 20%, 0.8) 0%, hsla(240, 30%, 25%, 0.6) 100%);
+  }
+
+  .glass-button:active {
+    transform: translateY(-1px) scale(0.98);
   }
 }
 
@@ -201,5 +223,69 @@
 
   .upload-zone.dragover {
     @apply border-primary bg-primary/10 scale-105;
+  }
+}
+
+@layer utilities {
+  /* Floating animations for glassmorphism background */
+  @keyframes float-slow {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    33% {
+      transform: translateY(-20px) rotate(120deg);
+    }
+    66% {
+      transform: translateY(10px) rotate(240deg);
+    }
+  }
+
+  @keyframes float-medium {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-15px) rotate(180deg);
+    }
+  }
+
+  @keyframes float-fast {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    25% {
+      transform: translateY(-10px) rotate(90deg);
+    }
+    50% {
+      transform: translateY(5px) rotate(180deg);
+    }
+    75% {
+      transform: translateY(-5px) rotate(270deg);
+    }
+  }
+
+  @keyframes float-very-slow {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg) scale(1);
+    }
+    50% {
+      transform: translateY(-25px) rotate(180deg) scale(1.05);
+    }
+  }
+
+  .animate-float-slow {
+    animation: float-slow 8s ease-in-out infinite;
+  }
+
+  .animate-float-medium {
+    animation: float-medium 6s ease-in-out infinite;
+  }
+
+  .animate-float-fast {
+    animation: float-fast 4s ease-in-out infinite;
+  }
+
+  .animate-float-very-slow {
+    animation: float-very-slow 12s ease-in-out infinite;
   }
 }

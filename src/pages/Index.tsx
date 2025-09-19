@@ -4,6 +4,7 @@ import UploadZone from "@/components/UploadZone";
 import ResultsDisplay from "@/components/ResultsDisplay";
 import HistorySection from "@/components/HistorySection";
 import HealthAnalyzer from "@/components/HealthAnalyzer";
+import GlassmorphismBackground from "@/components/GlassmorphismBackground";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const Index = () => {
     videoDuration?: string;
     videoStrategy?: string;
     extractedInfo?: any; // Medical info extracted from document
+    timestamp?: number; // To ensure fresh data
   } | null>(null);
 
   const handleFileUpload = (files: File[]) => {
@@ -48,12 +50,17 @@ const Index = () => {
   };
 
   const handleDocumentAnalysis = (extractedInfo: any, primaryMedication: string) => {
-    console.log('Document analysis:', extractedInfo, 'Primary medication:', primaryMedication);
+    console.log('Document analysis - Fresh upload:', extractedInfo, 'Primary medication:', primaryMedication);
+    
+    // Clear any previous data and set fresh data
     setUploadedData({
       medication: primaryMedication,
       type: 'document',
-      extractedInfo
+      extractedInfo,
+      // Add timestamp to ensure fresh data
+      timestamp: Date.now()
     });
+    
     // Auto-navigate to results with overview action
     setCurrentAction('overview');
     setCurrentView('results');
@@ -97,8 +104,8 @@ const Index = () => {
   const features = [
     {
       icon: FileText,
-      title: "Visit Summary",
-      description: "Comprehensive visit analysis"
+      title: "Drug Analyser",
+      description: "Comprehensive drug analysis"
     },
     {
       icon: Shield,
@@ -120,17 +127,20 @@ const Index = () => {
 
   if (currentView === 'results') {
     return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <MedInsightLogo />
+      <div className="min-h-screen relative">
+        <GlassmorphismBackground />
+        <div className="relative z-10 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-8">
+              <MedInsightLogo />
+            </div>
+            <ResultsDisplay
+              action={currentAction}
+              data={uploadedData}
+              onBack={handleBack}
+              historyEntryId={currentHistoryId}
+            />
           </div>
-          <ResultsDisplay
-            action={currentAction}
-            data={uploadedData}
-            onBack={handleBack}
-            historyEntryId={currentHistoryId}
-          />
         </div>
       </div>
     );
@@ -138,15 +148,18 @@ const Index = () => {
 
   if (currentView === 'history') {
     return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <MedInsightLogo />
+      <div className="min-h-screen relative">
+        <GlassmorphismBackground />
+        <div className="relative z-10 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-8">
+              <MedInsightLogo />
+            </div>
+            <HistorySection
+              onSelectEntry={handleSelectHistoryEntry}
+              onBack={handleBack}
+            />
           </div>
-          <HistorySection
-            onSelectEntry={handleSelectHistoryEntry}
-            onBack={handleBack}
-          />
         </div>
       </div>
     );
@@ -154,13 +167,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Hero Background */}
-      <div 
-        className="absolute inset-0 opacity-10 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      />
-      <div className="absolute inset-0 bg-gradient-hero opacity-90" />
-      
+      {/* Glassmorphism Background */}
+      <GlassmorphismBackground />
+
       {/* Content */}
       <div className="relative z-10">
         {/* Header */}
@@ -168,15 +177,7 @@ const Index = () => {
           <div className="max-w-6xl mx-auto flex justify-between items-center">
             <MedInsightLogo />
             <div className="flex items-center gap-3">
-              <Button
-                onClick={handleHistoryView}
-                variant="glass"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <History className="w-4 h-4" />
-                <span className="hidden sm:inline">History</span>
-              </Button>
+              {/* History button moved to UploadZone */}
             </div>
           </div>
         </header>
@@ -197,8 +198,7 @@ const Index = () => {
                 </h1>
                 
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                  Upload your prescription, medication photo, or enter drug names manually 
-                  to get comprehensive medical information, safety analysis, and personalized guidance.
+                  Discover comprehensive drug education, visual guides, clinical research, and AI-powered symptom analysis—all in one place to support smarter health decisions and personalized care.
                 </p>
               </div>
 
@@ -217,12 +217,23 @@ const Index = () => {
 
             {/* Main Content - Single Column */}
             <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-8 mt-96">
+                <h2 className="text-3xl font-bold mb-4">
+                  <span className="bg-gradient-primary bg-clip-text text-transparent">
+                    Explore Medicines: Education & Insights
+                  </span>
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                  Learn about drugs, watch educational videos, view clinical research, and get a comprehensive overview by entering a drug name or uploading your prescription.
+                </p>
+              </div>
               <Card className="glass-card p-8">
                 <UploadZone
                   onFileUpload={handleFileUpload}
                   onManualEntry={handleManualEntry}
                   onAnalyze={handleAnalyzeAndVisualize}
                   onDocumentAnalysis={handleDocumentAnalysis}
+                  onHistoryView={handleHistoryView}
                   currentMedication={uploadedData?.medication}
                 />
               </Card>

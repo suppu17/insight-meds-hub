@@ -4,9 +4,11 @@ from typing import Dict, Optional
 import json
 import asyncio
 from datetime import datetime
+import hashlib
 
 from app.models.drug import DrugRequest, DrugAnalysisResult, AnalysisProgress, DrugAnalysisType
 from app.services.multi_agent_intelligence import MultiAgentDrugIntelligence
+from app.services.redis_service import redis_service
 
 router = APIRouter()
 intelligence_service = MultiAgentDrugIntelligence()
@@ -22,19 +24,52 @@ async def start_drug_analysis(
 ):
     """Start comprehensive drug analysis with multi-agent intelligence"""
     try:
+        # Check if recent analysis exists in cache
+        cached_analysis = redis_service.get_drug_analysis(request.drug_name)
+        if cached_analysis and cached_analysis.get("full_analysis"):
+            analysis_data = cached_analysis["full_analysis"]
+            # Check if analysis is recent (within last 6 hours)
+            if "timestamp" in analysis_data:
+                cache_time = datetime.fromisoformat(analysis_data["timestamp"])
+                if (datetime.now() - cache_time).total_seconds() < 21600:  # 6 hours
+                    redis_service.increment_counter("usage", "drug_analysis", "cache_hits")
+                    return {
+                        "analysis_id": analysis_data.get("analysis_id", "cached"),
+                        "status": "completed_from_cache",
+                        "message": f"Recent analysis found for {request.drug_name}",
+                        "estimated_completion_minutes": 0,
+                        "results": analysis_data.get("results"),
+                        "cached": True
+                    }
+
         # Generate unique analysis ID
         import uuid
         analysis_id = str(uuid.uuid4())
 
         # Initialize analysis tracking
-        active_analyses[analysis_id] = {
+        analysis_session = {
             "drug_name": request.drug_name,
             "analysis_type": request.analysis_type,
             "status": "queued",
             "progress": 0,
             "created_at": datetime.now(),
-            "current_step": "Analysis queued"
+            "current_step": "Analysis queued",
+            "analysis_id": analysis_id
         }
+
+        active_analyses[analysis_id] = analysis_session
+
+        # Cache the session data
+        redis_service.cache_user_session(
+            analysis_id,
+            {
+                "type": "drug_analysis",
+                "drug_name": request.drug_name,
+                "analysis_type": request.analysis_type.value if hasattr(request.analysis_type, 'value') else str(request.analysis_type),
+                "status": "queued",
+                "created_at": str(datetime.now())
+            }
+        )
 
         # Start background analysis
         background_tasks.add_task(
@@ -43,14 +78,19 @@ async def start_drug_analysis(
             request
         )
 
+        # Increment usage counter
+        redis_service.increment_counter("usage", "drug_analysis", "requests")
+
         return {
             "analysis_id": analysis_id,
             "status": "queued",
             "message": f"Drug analysis started for {request.drug_name}",
-            "estimated_completion_minutes": 5
+            "estimated_completion_minutes": 5,
+            "cached": False
         }
 
     except Exception as e:
+        redis_service.increment_counter("errors", "drug_analysis", "failures")
         raise HTTPException(status_code=500, detail=f"Failed to start analysis: {str(e)}")
 
 
@@ -131,19 +171,46 @@ async def get_analysis_status(analysis_id: str):
 async def get_basic_drug_info(drug_name: str):
     """Get basic drug information quickly (without full analysis)"""
     try:
-        # This could be a faster lookup for basic drug info
-        # Using cached data or simplified API calls
+        # Check cache first for basic drug info
+        cached_info = redis_service.get_drug_analysis(drug_name)
+        if cached_info and cached_info.get("basic_info"):
+            redis_service.increment_counter("usage", "drug_info", "cache_hits")
+            return {
+                "drug_name": drug_name,
+                "status": "info_retrieved_from_cache",
+                "message": f"Basic information for {drug_name} (cached)",
+                "data": cached_info["basic_info"],
+                "cached": True
+            }
+
+        # Generate basic drug info
+        basic_info = {
+            "generic_name": drug_name,
+            "description": "Drug information lookup completed",
+            "data_sources": ["FDA", "Basic Medical Databases"],
+            "lookup_timestamp": str(datetime.now())
+        }
+
+        # Cache the basic info
+        drug_cache_data = {
+            "basic_info": basic_info,
+            "last_updated": str(datetime.now())
+        }
+        redis_service.cache_drug_analysis(drug_name, drug_cache_data)
+
+        # Increment counter
+        redis_service.increment_counter("usage", "drug_info", "requests")
+
         return {
             "drug_name": drug_name,
             "status": "info_retrieved",
             "message": f"Basic information for {drug_name}",
-            "data": {
-                "generic_name": drug_name,
-                "description": "Drug information lookup completed",
-                "data_sources": ["FDA", "Basic Medical Databases"]
-            }
+            "data": basic_info,
+            "cached": False
         }
+
     except Exception as e:
+        redis_service.increment_counter("errors", "drug_info", "failures")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve drug info: {str(e)}")
 
 
