@@ -6,7 +6,7 @@ import json
 import hashlib
 import uuid
 from app.services.ai_models import AIModelService
-from app.services.multi_agent_intelligence import MultiAgentIntelligenceService
+from app.services.multi_agent_intelligence import MultiAgentDrugIntelligence
 from app.services.redis_service import redis_service
 
 router = APIRouter()

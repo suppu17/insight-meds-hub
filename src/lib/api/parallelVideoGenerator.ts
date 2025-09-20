@@ -4,7 +4,7 @@ export interface VideoOptions {
   duration: '8s' | '16s' | '30s';
   quality: 'high' | 'medium' | 'low';
   aspectRatio: '16:9' | '9:16' | '1:1';
-  resolution: '1080p' | '720p' | '480p';
+  resolution: '1080p' | '720p';
 }
 
 export interface ParallelSegmentGenerationCallback {
@@ -121,7 +121,7 @@ async function generateAllSegmentsParallel(
       videoResult = await generateVideoFromText(prompt, {
         duration: `${duration}s` as any,
         aspectRatio: options.aspectRatio,
-        resolution: options.resolution,
+        resolution: options.resolution === '1080p' ? '1080p' : '720p',
         generateAudio: true
       });
 
@@ -141,6 +141,7 @@ async function generateAllSegmentsParallel(
 
     } catch (error) {
       const segmentError = new Error(`Failed to generate segment ${segmentNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error(`❌ Parallel segment ${segmentNumber} generation failed:`, segmentError);
       callbacks.onError(segmentNumber, segmentError);
 
       // Create a fallback placeholder segment
@@ -161,7 +162,15 @@ async function generateAllSegmentsParallel(
   // Wait for all segments to complete
   const segments = await Promise.all(segmentPromises);
 
-  console.log('✅ All parallel video segments completed');
+  // Filter out failed segments and log results
+  const validSegments = segments.filter(s => s.videoUrl && s.videoUrl.startsWith('http'));
+  const failedCount = segments.length - validSegments.length;
+  
+  if (failedCount > 0) {
+    console.warn(`⚠️ ${failedCount}/${segments.length} parallel segments failed`);
+  }
+  
+  console.log(`✅ Parallel video generation completed: ${validSegments.length}/${segments.length} segments successful`);
   return segments.sort((a, b) => a.segmentNumber - b.segmentNumber);
 }
 
@@ -200,7 +209,7 @@ async function generateSegmentsHybrid(
           videoResult = await generateVideoFromText(prompt, {
             duration: `${duration}s` as any,
             aspectRatio: options.aspectRatio,
-            resolution: options.resolution,
+            resolution: options.resolution === '1080p' ? '1080p' : '720p',
             generateAudio: true
           });
         } else {
@@ -209,7 +218,7 @@ async function generateSegmentsHybrid(
           videoResult = await generateVideoFromText(prompt, {
             duration: `${duration}s` as any,
             aspectRatio: options.aspectRatio,
-            resolution: options.resolution,
+            resolution: options.resolution === '1080p' ? '1080p' : '720p',
             generateAudio: true
           });
         }
@@ -285,7 +294,7 @@ async function generateSegmentsSequential(
         videoResult = await generateVideoFromText(prompt, {
           duration: `${duration}s` as any,
           aspectRatio: options.aspectRatio,
-          resolution: options.resolution,
+          resolution: options.resolution === '1080p' ? '1080p' : '720p',
           generateAudio: true
         });
       } else {
@@ -295,7 +304,7 @@ async function generateSegmentsSequential(
           videoResult = await generateVideoFromText(prompt, {
             duration: `${duration}s` as any,
             aspectRatio: options.aspectRatio,
-            resolution: options.resolution,
+            resolution: options.resolution === '1080p' ? '1080p' : '720p',
             generateAudio: true
           });
         } else {
@@ -303,7 +312,7 @@ async function generateSegmentsSequential(
           videoResult = await generateVideoFromImage(lastFrameBlob, prompt, {
             duration: `${duration}s` as any,
             aspectRatio: options.aspectRatio,
-            resolution: options.resolution,
+            resolution: options.resolution === '1080p' ? '1080p' : '720p',
             generateAudio: true
           });
         }

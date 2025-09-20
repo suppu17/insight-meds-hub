@@ -40,34 +40,29 @@ const SegmentPreview = ({
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [internalError, setInternalError] = useState(false);
 
-  // Generate segment titles and descriptions
+  // Generate segment titles
   const getSegmentInfo = (segmentNumber: number) => {
     const segments = [
       {
         title: "Introduction",
-        description: "Drug overview and basics",
         timeRange: "0-8s"
       },
       {
         title: "Mechanism",
-        description: "How the drug works",
         timeRange: "8-16s"
       },
       {
         title: "Effects",
-        description: "Therapeutic benefits",
         timeRange: "16-24s"
       },
       {
         title: "Safety",
-        description: "Warnings and summary",
         timeRange: "24-30s"
       }
     ];
 
     return segments[segmentNumber - 1] || {
       title: `Segment ${segmentNumber}`,
-      description: "Video segment",
       timeRange: `${(segmentNumber - 1) * 8}-${segmentNumber * 8}s`
     };
   };
@@ -196,7 +191,6 @@ const SegmentPreview = ({
         <div className="flex items-center justify-between mb-3">
           <div>
             <h4 className="font-semibold text-sm">{segmentInfo.title}</h4>
-            <p className="text-xs text-muted-foreground">{segmentInfo.description}</p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">

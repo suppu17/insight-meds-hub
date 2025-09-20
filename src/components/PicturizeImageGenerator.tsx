@@ -190,8 +190,8 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
   return (
     <Card className="glass-card p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold flex items-center gap-2">
-          <Image className="w-6 h-6 text-green-600" />
+        <h3 className="text-xl font-bold flex items-center gap-2 text-white">
+          <Image className="w-6 h-6 text-green-400" />
           AI-Generated Illustrations
         </h3>
         <div className="flex gap-2">
@@ -218,16 +218,16 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
 
       {/* Single consolidated generation status */}
       {(isGenerating || generationProgress || (!isGenerating && images.every(img => !img.url && !img.error))) && (
-        <div className="mb-6 p-4 glass-panel rounded-lg bg-blue/5 border-blue/20">
+        <div className="mb-6 p-4 glass-panel rounded-lg bg-black/20 border-white/20">
           <div className="flex items-center gap-3">
             <div className="animate-spin">
-              <Loader2 className="w-5 h-5 text-blue-600" />
+              <Loader2 className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <p className="font-medium text-blue-900">
+              <p className="font-medium text-white">
                 {generationProgress || 'Generating AI Illustrations'}
               </p>
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-gray-200">
                 Creating molecular structure, mechanism diagram, and therapeutic effects visualizations...
               </p>
             </div>
@@ -241,8 +241,8 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
           return (
             <div key={index} className="space-y-4">
               <div className="flex items-center gap-2">
-                <IconComponent className="w-5 h-5 text-green-600" />
-                <h4 className="font-semibold text-sm">{image.title}</h4>
+                <IconComponent className="w-5 h-5 text-green-400" />
+                <h4 className="font-semibold text-sm text-white">{image.title}</h4>
               </div>
 
               <div className="aspect-square bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg border border-green/20 overflow-hidden">
@@ -327,26 +327,26 @@ const PicturizeImageGenerator: React.FC<PicturizeImageGeneratorProps> = ({
         })}
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-black/30 border border-white/20 rounded-lg p-4 backdrop-blur-sm">
         <div className="flex items-start gap-3">
-          <Image className="w-5 h-5 text-blue-600 mt-0.5" />
+          <Image className="w-5 h-5 text-blue-400 mt-0.5" />
           <div>
-            <h4 className="font-medium text-blue-900 mb-1">Automatic Visual Learning</h4>
-            <p className="text-sm text-blue-700">
+            <h4 className="font-medium text-white mb-1">Automatic Visual Learning</h4>
+            <p className="text-sm text-gray-200">
               AI illustrations are generated automatically to help visualize how {drugName} works at the molecular level.
               Each image shows different aspects: molecular structure, mechanism of action, and therapeutic effects.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs text-gray-300 border-gray-500 bg-black/20">
                 ✨ Auto-Generated
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs text-gray-300 border-gray-500 bg-black/20">
                 🧬 Molecular Level
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs text-gray-300 border-gray-500 bg-black/20">
                 📚 Educational
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs text-gray-300 border-gray-500 bg-black/20">
                 💾 Downloadable
               </Badge>
             </div>

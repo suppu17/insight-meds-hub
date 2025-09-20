@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 
 import stytch
-from stytch.models import OTPs, MagicLinks, Sessions, Passwords, Users
+from stytch.consumer.models import otp, magic_links, sessions, passwords, users
 from pydantic import BaseModel, EmailStr
 import jwt
 from fastapi import HTTPException, status

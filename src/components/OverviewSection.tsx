@@ -11,9 +11,11 @@ import {
   TrendingUp,
   Users,
   Pill,
-  Eye
+  Eye,
+  Sparkles
 } from "lucide-react";
 import PatientAnalysisDisplay from "@/components/PatientAnalysisDisplay";
+import EnhancedDrugOverview from "@/components/EnhancedDrugOverview";
 import { historyService, type HistoryEntry } from "@/lib/historyService";
 
 // Real FDA medication validation - NO MOCK DATA
@@ -152,6 +154,7 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
 }) => {
   const [fdaMedicationInfo, setFdaMedicationInfo] = useState<FDAMedicationInfo | null>(null);
   const [isValidatingFDA, setIsValidatingFDA] = useState(false);
+  const [useEnhancedOverview, setUseEnhancedOverview] = useState(true);
   // Validate FDA medication information when drugName changes
   useEffect(() => {
     const validateMedication = async () => {
@@ -216,78 +219,116 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
       )}
 
-      {/* Drug Information - Only show for validated medications */}
+      {/* Enhanced Drug Overview - Show comprehensive information */}
       {isValidMedication(drugName) ? (
-        <Card className="glass-card p-6 bg-blue/5 border-blue/20">
-          <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
-            <Eye className="w-6 h-6 text-blue-600" />
-            {drugName} - Complete Overview
-          </h3>
-          <p className="text-muted-foreground mb-6 text-lg">
-            FDA-validated medication information including uses, mechanism, side effects, and precautions.
-          </p>
+        <div className="space-y-6">
+          {/* Toggle between enhanced and basic view */}
+          <Card className="glass-card p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                <div>
+                  <h4 className="font-semibold text-purple-900">Enhanced Drug Information</h4>
+                  <p className="text-sm text-purple-700">Comprehensive data from multiple trusted medical sources</p>
+                </div>
+              </div>
+              <Button
+                variant={useEnhancedOverview ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseEnhancedOverview(!useEnhancedOverview)}
+                className="flex items-center gap-2"
+              >
+                {useEnhancedOverview ? (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Enhanced View
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    Basic View
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
 
-          {fdaMedicationInfo ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white/50 rounded-lg p-4 border border-blue/20">
-                  <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                    <Pill className="w-5 h-5" />
-                    What is {drugName}?
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {drugName} is a {fdaMedicationInfo.class} medication primarily used to treat {fdaMedicationInfo.indication}.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground">
-                      <strong>Drug Class:</strong> {fdaMedicationInfo.class}
+          {/* Show enhanced or basic overview based on toggle */}
+          {useEnhancedOverview ? (
+            <EnhancedDrugOverview drugName={drugName} />
+          ) : (
+            <Card className="glass-card p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <Eye className="w-6 h-6 text-blue-600" />
+                {drugName} - Basic Overview
+              </h3>
+              <p className="text-muted-foreground mb-6 text-lg">
+                FDA-validated medication information including uses, mechanism, side effects, and precautions.
+              </p>
+
+              {fdaMedicationInfo ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white/80 rounded-lg p-4 border border-blue-200 shadow-sm">
+                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <Pill className="w-5 h-5" />
+                        What is {drugName}?
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-3">
+                        {drugName} is a {fdaMedicationInfo.class} medication primarily used to treat {fdaMedicationInfo.indication}.
+                      </p>
+                      <div className="space-y-2">
+                        <div className="text-xs text-gray-600">
+                          <strong>Drug Class:</strong> {fdaMedicationInfo.class}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          <strong>Generic Name:</strong> {drugName}
+                        </div>
+                        <div className="text-xs text-green-600">
+                          <strong>✅ FDA Validated</strong>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      <strong>Generic Name:</strong> {drugName}
-                    </div>
-                    <div className="text-xs text-green-600">
-                      <strong>✅ FDA Validated</strong>
+
+                    <div className="bg-white/80 rounded-lg p-4 border border-green-200 shadow-sm">
+                      <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        Primary Uses & Benefits
+                      </h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
+                          <span className="text-gray-600">FDA-approved for {fdaMedicationInfo.indication}</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
+                          <span className="text-gray-600">Evidence-based clinical effectiveness</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
+                          <span className="text-gray-600">Established safety profile</span>
+                        </li>
+                      </ul>
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-white/50 rounded-lg p-4 border border-green/20">
-                  <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5" />
-                    Primary Uses & Benefits
-                  </h4>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
-                      <span className="text-muted-foreground">FDA-approved for {fdaMedicationInfo.indication}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
-                      <span className="text-muted-foreground">Evidence-based clinical effectiveness</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-3 h-3 text-green-500 mt-1 flex-shrink-0" />
-                      <span className="text-muted-foreground">Established safety profile</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center p-6">
-              {isValidatingFDA ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-sm text-muted-foreground">Validating medication with FDA database...</span>
-                </div>
               ) : (
-                <div className="text-sm text-muted-foreground">
-                  No FDA validation available for this medication.
+                <div className="text-center p-6">
+                  {isValidatingFDA ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm text-muted-foreground">Validating medication with FDA database...</span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      No FDA validation available for this medication.
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+            </Card>
           )}
-        </Card>
+        </div>
       ) : (
         <Card className="glass-card p-6 bg-amber/5 border-amber/20">
           <h3 className="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -319,8 +360,8 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
         </Card>
       )}
 
-      {/* Detailed Drug Information - Only show for valid medications */}
-      {isValidMedication(drugName) && (
+      {/* Detailed Drug Information - Only show for valid medications and when using basic view */}
+      {isValidMedication(drugName) && !useEnhancedOverview && (
         <Card className="glass-card p-6">
           <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
             <Brain className="w-6 h-6 text-primary" />
@@ -414,25 +455,17 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-primary mb-2">Validation Status</h4>
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        Validation Status
+                      </h4>
                       <div className="flex items-center gap-2 text-sm">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-green-600">FDA Validated Medication</span>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-green-700 font-medium">FDA Validated Medication</span>
                       </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold text-blue-600 mb-2">Analysis Status</h4>
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span className="text-blue-600">Detailed analysis in progress...</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                      <p className="text-xs text-blue-700">
-                        <strong>Note:</strong> Detailed medical information will appear here once the comprehensive analysis is complete.
+                      <p className="text-xs text-green-600 mt-2">
+                        This medication has been approved by the FDA and is recognized as safe and effective when used as directed.
                       </p>
                     </div>
                   </div>

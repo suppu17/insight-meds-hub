@@ -66,8 +66,10 @@ MedInsight Hub is a comprehensive healthcare application that empowers users wit
 
 ### Data Collection & Web Scraping
 - **Bright Data** for reliable web data collection
+- **TigerData** for comprehensive data analysis and collection
 - **Proxy networks** for scalable data fetching
 - **Real-time data extraction** from medical databases
+- **Advanced logging and history tracking** for all data operations
 
 ### Authentication & Security
 - **Stytch** for passwordless authentication
@@ -82,6 +84,8 @@ MedInsight Hub is a comprehensive healthcare application that empowers users wit
 - AWS Account (for Bedrock and S3)
 - Redis Cloud account
 - Stytch account
+- TigerData API access
+- Bright Data account (optional)
 
 ### Installation
 
@@ -109,6 +113,8 @@ cp .env.example .env
 # - AWS credentials and region
 # - Stytch API keys
 # - Redis Cloud connection
+# - TigerData API key (01K5FVEAW4KJ0YEDFKFY7Y7E47)
+# - Bright Data configuration
 # - Other service configurations
 ```
 
@@ -182,8 +188,10 @@ MedInsight Hub uses Stytch for secure, passwordless authentication:
 - **Severity Scoring**: Intelligent severity assessment and alerts
 
 ### Drug Information System
-- **Comprehensive Database**: Extensive drug information and interactions powered by Bright Data
+- **Comprehensive Database**: Extensive drug information and interactions powered by Bright Data and TigerData
 - **Real-time Data Collection**: Up-to-date drug information from multiple medical sources
+- **Advanced Analytics**: TigerData-powered analysis and insights
+- **Complete Audit Trail**: Full logging and history of all data operations
 - **Visual Guides**: Interactive medication guides and instructions
 - **Safety Alerts**: Drug interaction warnings and contraindications
 - **Clinical Research**: Access to latest clinical studies and research data
@@ -197,14 +205,97 @@ MedInsight Hub uses Stytch for secure, passwordless authentication:
 ## 🌐 API Documentation
 
 The backend API provides comprehensive endpoints for:
-- `/api/v1/drug-analysis` - Drug information and analysis with Bright Data integration
+- `/api/v1/drug-analysis` - Drug information and analysis with Bright Data and TigerData integration
 - `/api/v1/health-analysis` - Symptom analysis and health insights
 - `/api/v1/medical-ocr` - OCR processing endpoints
 - `/api/v1/cache` - Caching and data management
 - `/api/v1/data-collection` - Bright Data web scraping and data fetching
+- `/api/v1/tigerdata` - TigerData operations and analytics
+- `/api/v1/history` - Data history and audit trail management
+- `/api/v1/logs` - Comprehensive logging and monitoring
 - `/auth` - Authentication and user management
 
 Full API documentation is available at `/docs` when running the backend server.
+
+## 🐅 TigerData Integration
+
+MedInsight Hub leverages TigerData (API Key: `01K5FVEAW4KJ0YEDFKFY7Y7E47`) for comprehensive data collection, analysis, and audit trail management:
+
+### 🔍 **Data Collection Capabilities**
+- **Drug Information**: Real-time pharmaceutical data collection from multiple sources
+- **Market Research**: Healthcare industry intelligence and trend analysis  
+- **Symptom Analysis**: Advanced patient data processing and insights
+- **File Management**: Secure storage and processing of medical documents
+
+### 📊 **Advanced Analytics**
+- **Real-time Processing**: Instant data analysis and insights generation
+- **Pattern Recognition**: Identify trends and correlations in medical data
+- **Predictive Analytics**: AI-powered forecasting for health outcomes
+- **Cross-reference Analysis**: Compare data across multiple medical databases
+
+### 📝 **Comprehensive Logging System**
+- **Request/Response Tracking**: Complete audit trail of all API interactions
+- **Error Monitoring**: Detailed error logging with stack traces and metadata
+- **Performance Metrics**: Response times, success rates, and system performance
+- **User Activity**: Track user interactions and data access patterns
+
+### 🗄️ **History & Data Management**
+- **Complete Data History**: Store all requests, responses, files, and generated data
+- **Checksum Verification**: Ensure data integrity with SHA-256 checksums
+- **Tagging System**: Organize data with custom tags for easy retrieval
+- **Export Functionality**: Export complete history for backup and analysis
+- **Search & Filter**: Advanced search capabilities across all stored data
+
+### 🔐 **Security Features**
+- **Encrypted Storage**: All data encrypted at rest and in transit
+- **Access Control**: Role-based access to sensitive medical information
+- **Audit Compliance**: HIPAA-compliant logging and data handling
+- **Data Retention**: Configurable data retention policies
+
+### 🛠️ **Integration Features**
+- **RESTful API**: Easy integration with existing healthcare systems
+- **Real-time Webhooks**: Instant notifications for critical events
+- **Batch Processing**: Handle large datasets efficiently
+- **Multi-format Support**: JSON, XML, CSV, and custom format handling
+
+### 📈 **Monitoring & Analytics Dashboard**
+- **Real-time Statistics**: Live view of system performance and usage
+- **Historical Trends**: Analyze data patterns over time
+- **Alert System**: Automated alerts for anomalies and critical events
+- **Custom Reports**: Generate detailed reports for compliance and analysis
+
+### 🔧 **Configuration Options**
+```typescript
+// TigerData service configuration
+const tigerDataConfig = {
+  apiKey: '01K5FVEAW4KJ0YEDFKFY7Y7E47',
+  baseUrl: 'https://api.tigerdata.com',
+  enableLogging: true,
+  historyStorage: true,
+  timeout: 30000
+};
+```
+
+### 📋 **Usage Examples**
+```typescript
+// Get comprehensive drug information
+const drugInfo = await getTigerDataDrugInfo('aspirin', sessionId);
+
+// Analyze patient symptoms
+const analysis = await analyzeSymptomsWithTigerData(
+  ['headache', 'fever', 'fatigue'],
+  { age: 35, gender: 'female' },
+  sessionId
+);
+
+// Store medical document
+const result = await tigerDataService.storeFile(fileBlob, {
+  filename: 'prescription.pdf',
+  contentType: 'application/pdf',
+  tags: ['prescription', 'patient-123'],
+  description: 'Patient prescription document'
+});
+```
 
 ## 🔒 Security & Privacy
 
@@ -212,6 +303,9 @@ Full API documentation is available at `/docs` when running the backend server.
 - **HIPAA Compliance**: Healthcare data handling following best practices
 - **Secure Authentication**: Passwordless authentication with Stytch
 - **Privacy First**: User data privacy and consent management
+- **Comprehensive Audit Trail**: Complete logging of all data operations with TigerData
+- **Data Integrity**: Checksum verification and data validation
+- **Secure API Keys**: Proper API key management and rotation
 
 ## 🤝 Contributing
 

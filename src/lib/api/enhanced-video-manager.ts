@@ -290,6 +290,14 @@ export class EnhancedVideoManager {
       // Stage 4: Video Concatenation
       let videoResult: FFmpegResult;
 
+      // Check if we have any valid segments before proceeding
+      const validSegments = segments.filter(s => s.videoUrl && s.videoUrl.startsWith('http'));
+      if (validSegments.length === 0) {
+        throw new Error('No valid video segments were generated. Please check your internet connection and try again.');
+      }
+
+      console.log(`📹 Found ${validSegments.length}/${segments.length} valid video segments for concatenation`);
+
       if (options.useBackendProcessing) {
         // Use backend API for video combining
         onProgress?.({
@@ -313,7 +321,8 @@ export class EnhancedVideoManager {
             });
           };
 
-          const result = await backendProcessor.combineAndWait(segments, {
+          // Use only valid segments for backend processing
+          const result = await backendProcessor.combineAndWait(validSegments, {
             format: options.format,
             quality: options.quality,
             drugName,
@@ -322,10 +331,10 @@ export class EnhancedVideoManager {
 
           videoResult = {
             videoBlob: result.videoBlob,
-            duration: result.duration,
-            segments,
+            duration: result.result.duration,
+            segments: validSegments,
             format: options.format,
-            size: result.size,
+            size: result.result.size,
             quality: options.quality
           };
 
@@ -354,7 +363,8 @@ export class EnhancedVideoManager {
           };
 
           try {
-            videoResult = await concatenateWithFFmpeg(segments, {
+            // Use only valid segments for FFmpeg processing
+            videoResult = await concatenateWithFFmpeg(validSegments, {
               quality: options.quality,
               format: options.format,
               onProgress: ffmpegProgress
@@ -371,29 +381,33 @@ export class EnhancedVideoManager {
           } catch (ffmpegError) {
             console.warn('Both backend and FFmpeg concatenation failed, using first segment fallback:', ffmpegError);
 
-            // Final fallback: Use first segment only
-            const firstSegment = segments.find(s => s.videoUrl && s.videoUrl.startsWith('http'));
-            if (!firstSegment) {
-              throw new Error('No valid video segments available');
+            // Final fallback: Use first valid segment only
+            const firstValidSegment = validSegments[0];
+            if (!firstValidSegment) {
+              throw new Error('No valid video segments available for fallback');
             }
 
-            const fallbackBlob = await fetch(firstSegment.videoUrl).then(r => r.blob());
-            videoResult = {
-              videoBlob: fallbackBlob,
-              duration: segments.reduce((sum, s) => sum + s.duration, 0),
-              segments,
-              format: options.format,
-              size: fallbackBlob.size,
-              quality: options.quality
-            };
+            try {
+              const fallbackBlob = await fetch(firstValidSegment.videoUrl).then(r => r.blob());
+              videoResult = {
+                videoBlob: fallbackBlob,
+                duration: validSegments.reduce((sum, s) => sum + s.duration, 0),
+                segments: validSegments,
+                format: options.format,
+                size: fallbackBlob.size,
+                quality: options.quality
+              };
 
-            onProgress?.({
-              stage: 'concatenation',
-              progress: 80,
-              message: 'Using first segment only (concatenation failed)',
-              concatenationProgress: 100,
-              timeElapsed: Date.now() - startTime
-            });
+              onProgress?.({
+                stage: 'concatenation',
+                progress: 80,
+                message: `Using first segment only (${validSegments.length} valid segments available)`,
+                concatenationProgress: 100,
+                timeElapsed: Date.now() - startTime
+              });
+            } catch (fetchError) {
+              throw new Error(`Failed to fetch video segment for fallback: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+            }
           }
         }
 
@@ -412,7 +426,8 @@ export class EnhancedVideoManager {
         };
 
         try {
-          videoResult = await concatenateWithFFmpeg(segments, {
+          // Use only valid segments for FFmpeg processing
+          videoResult = await concatenateWithFFmpeg(validSegments, {
             quality: options.quality,
             format: options.format,
             onProgress: ffmpegProgress
@@ -444,7 +459,8 @@ export class EnhancedVideoManager {
               });
             };
 
-            const result = await backendProcessor.combineAndWait(segments, {
+            // Use only valid segments for backend processing
+            const result = await backendProcessor.combineAndWait(validSegments, {
               format: options.format,
               quality: options.quality,
               drugName,
@@ -453,10 +469,10 @@ export class EnhancedVideoManager {
 
             videoResult = {
               videoBlob: result.videoBlob,
-              duration: result.duration,
-              segments,
+              duration: result.result.duration,
+              segments: validSegments,
               format: options.format,
-              size: result.size,
+              size: result.result.size,
               quality: options.quality
             };
 
@@ -471,29 +487,33 @@ export class EnhancedVideoManager {
           } catch (backendFallbackError) {
             console.warn('Both FFmpeg and backend failed, using first segment fallback:', backendFallbackError);
 
-            // Final fallback: Use first segment only
-            const firstSegment = segments.find(s => s.videoUrl && s.videoUrl.startsWith('http'));
-            if (!firstSegment) {
-              throw new Error('No valid video segments available');
+            // Final fallback: Use first valid segment only
+            const firstValidSegment = validSegments[0];
+            if (!firstValidSegment) {
+              throw new Error('No valid video segments available for fallback');
             }
 
-            const fallbackBlob = await fetch(firstSegment.videoUrl).then(r => r.blob());
-            videoResult = {
-              videoBlob: fallbackBlob,
-              duration: segments.reduce((sum, s) => sum + s.duration, 0),
-              segments,
-              format: options.format,
-              size: fallbackBlob.size,
-              quality: options.quality
-            };
+            try {
+              const fallbackBlob = await fetch(firstValidSegment.videoUrl).then(r => r.blob());
+              videoResult = {
+                videoBlob: fallbackBlob,
+                duration: validSegments.reduce((sum, s) => sum + s.duration, 0),
+                segments: validSegments,
+                format: options.format,
+                size: fallbackBlob.size,
+                quality: options.quality
+              };
 
-            onProgress?.({
-              stage: 'concatenation',
-              progress: 80,
-              message: 'Using first segment only (all concatenation methods failed)',
-              concatenationProgress: 100,
-              timeElapsed: Date.now() - startTime
-            });
+              onProgress?.({
+                stage: 'concatenation',
+                progress: 80,
+                message: `Using first segment only (${validSegments.length} valid segments available)`,
+                concatenationProgress: 100,
+                timeElapsed: Date.now() - startTime
+              });
+            } catch (fetchError) {
+              throw new Error(`Failed to fetch video segment for fallback: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+            }
           }
         }
       }
@@ -616,7 +636,7 @@ export class EnhancedVideoManager {
 
       const result: EnhancedVideoResult = {
         videoBlob: videoResult.videoBlob,
-        segments,
+        segments: videoResult.segments, // Use the segments from videoResult (which are the valid ones)
         duration: videoResult.duration,
         format: options.format,
         quality: options.quality,
@@ -773,7 +793,7 @@ export function getEnhancedVideoManager(): EnhancedVideoManager {
 export async function generateDrugVideo(
   drugName: string,
   options: Partial<VideoGenerationOptions> = {},
-  onProgress?: (progress: VideoGenerationProgress) => void
+  onProgress?: (progress: EnhancedVideoGenerationProgress) => void
 ): Promise<EnhancedVideoResult> {
   const manager = getEnhancedVideoManager();
 
