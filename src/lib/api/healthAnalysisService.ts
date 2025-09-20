@@ -525,10 +525,11 @@ class MockHealthAnalysisService {
 }
 
 // Factory function
-export const createHealthAnalysisService = (baseUrl?: string, apiKey?: string) => {
+export const createHealthAnalysisService = (baseUrl?: string, providedApiKey?: string) => {
   // Use real backend service if available
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
-  // Always try to use real service first
-  return new HealthAnalysisService(`${backendUrl}/api/v1`, 'dummy-key');
+  // Use provided API key or environment variable for API key or fallback to TigerData integration
+  const apiKey = providedApiKey || import.meta.env.VITE_HEALTH_ANALYSIS_API_KEY || import.meta.env.VITE_TIGER_DATA_API_KEY || '';
+  return new HealthAnalysisService(`${backendUrl}/api/v1`, apiKey);
 };

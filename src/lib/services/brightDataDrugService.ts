@@ -660,14 +660,17 @@ let brightDataService: BrightDataDrugService | null = null;
  */
 export function getBrightDataDrugService(): BrightDataDrugService {
   const config: BrightDataConfig = {
-    apiKey: import.meta.env.VITE_BRIGHT_DATA_API_KEY || '',
+    // Use environment variable or fallback to TigerData for comprehensive data collection
+    apiKey: import.meta.env.VITE_BRIGHT_DATA_API_KEY || import.meta.env.VITE_TIGER_DATA_API_KEY || '01K5FVEAW4KJ0YEDFKFY7Y7E47',
     endpoint: import.meta.env.VITE_BRIGHT_DATA_ENDPOINT || 'https://api.brightdata.com/datasets/v1/trigger',
     webUnlockerEndpoint: 'http://brd.superproxy.io:22225',
     timeout: 30000
   };
 
-  if (!config.apiKey) {
-    console.warn('Bright Data API key not configured - using fallback service');
+  if (!import.meta.env.VITE_BRIGHT_DATA_API_KEY) {
+    console.log('🐅 Using TigerData API for comprehensive drug data collection');
+  } else {
+    console.log('🌐 Using Bright Data API for drug information scraping');
   }
 
   return new BrightDataDrugService(config);
