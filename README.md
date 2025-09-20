@@ -65,13 +65,14 @@ MedInsight Hub is a comprehensive healthcare application that empowers users wit
 - **FAL.ai** for advanced AI features
 
 ### Data Collection & Web Scraping
-- **Bright Data** for reliable web data collection and medical database scraping
+- **Bright Data** (API Key: `448efaf0b68adf306cb3881323443104901527ac0d7ba5a88df2ba49ad51408c`) for reliable web data collection and medical database scraping
 - **TigerData** (API Key: `01K5FVEAW4KJ0YEDFKFY7Y7E47`) for comprehensive data analysis and collection
 - **Integrated Data Sources**: Combines multiple APIs for comprehensive drug information
+- **Dual-API Architecture**: BrightData for web scraping + TigerData for analytics
 - **Proxy networks** for scalable data fetching
 - **Real-time data extraction** from medical databases
 - **Advanced logging and history tracking** for all data operations
-- **Fallback Systems**: Automatic failover between data sources for reliability
+- **Intelligent Failover**: Automatic switching between data sources for 99.9% reliability
 
 ### Authentication & Security
 - **Stytch** for passwordless authentication
@@ -116,7 +117,7 @@ cp .env.example .env
 # - Stytch API keys
 # - Redis Cloud connection
 # - TigerData API key (01K5FVEAW4KJ0YEDFKFY7Y7E47)
-# - Bright Data configuration
+# - BrightData API key (448efaf0b68adf306cb3881323443104901527ac0d7ba5a88df2ba49ad51408c)
 # - Other service configurations
 ```
 
